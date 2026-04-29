@@ -1,0 +1,23 @@
+/* Fuentes vía Bunny Fonts (mirror RGPD-friendly de Google Fonts).
+   Justificación: tribunales europeos han fallado contra fonts.googleapis.com
+   por enviar IPs a Google. Bunny no traquea. Ver DESIGN.md §3 — Carga de fuentes. */
+@import url("https://fonts.bunny.net/css?family=instrument-serif:400,400i&display=swap");
+@import url("https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: theme("fontFamily.sans");
+    background: theme("colors.canvas.base");
+    color: theme("colors.ink.DEFAULT");
+  }
+  /* Tabular nums activos por defecto en datos */
+  .tabular,
+  .data-cell,
+  [class*="kpi"] {
+    font-variant-numeric: tabular-nums;
+  }
+}
