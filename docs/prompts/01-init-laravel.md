@@ -9,7 +9,7 @@
 Dejar `~/Documents/winfin-piv/` con:
 
 - Laravel 12 instalado (composer create-project sobre carpeta no vacía — workaround documentado).
-- Pest 3 instalado en lugar de PHPUnit.
+- Pest 4 instalado en lugar de PHPUnit. (Versión efectiva: 4.6.3 — ver commit `docs: align stack version references to Pest 4`.)
 - Tailwind 3 + Vite con tokens de DESIGN.md ya aplicados (azul cobalto `#1D3F8C`, Instrument Serif, General Sans desde Bunny Fonts RGPD-friendly).
 - Ruta `/up` health check funcional.
 - `.env` local generado a partir de `.env.example` con `APP_KEY` fresco. El `.env` NO se commitea.
@@ -163,7 +163,7 @@ Verifica que `.env` se creó con `APP_KEY=base64:...` y que `.env` está listado
 grep -E '^\.env$' .gitignore
 ```
 
-## Paso 5 — Reemplazar PHPUnit por Pest 3
+## Paso 5 — Reemplazar PHPUnit por Pest 4
 
 ```bash
 composer remove --dev phpunit/phpunit --no-interaction || true
@@ -404,7 +404,7 @@ Primer commit (mensaje en inglés, ≤72 chars en subject, body en español):
 ```bash
 git commit -m "chore: bootstrap Laravel 12 + Pest + Tailwind with full docs
 
-Inicializa el proyecto Winfin PIV con Laravel 12, Pest 3, Tailwind 3 y
+Inicializa el proyecto Winfin PIV con Laravel 12, Pest 4, Tailwind 3 y
 Vite. Aplica el sistema visual de DESIGN.md (azul cobalto #1D3F8C,
 Instrument Serif y General Sans vía Bunny Fonts) en tailwind.config.js
 y resources/css/app.css. Añade ruta /up health check para canary.
@@ -456,7 +456,7 @@ Cuando termines, dame este resumen exacto:
 ```
 ✅ Qué he hecho:
    - Laravel 12.x.x instalado.
-   - Pest 3.x.x instalado, PHPUnit removido.
+   - Pest 4.x.x instalado, PHPUnit removido.
    - Tailwind 3.x con tokens de DESIGN.md aplicados.
    - resources/css/app.css cargando Instrument Serif + General Sans desde Bunny.
    - Ruta /up health check añadida y verificada (200 OK, body "OK").
