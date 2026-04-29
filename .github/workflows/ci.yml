@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  php-tests:
+    name: PHP ${{ matrix.php }} — Pint + Pest
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, bcmath, intl, fileinfo, sqlite3, pdo_sqlite
+          coverage: none
+          tools: composer:v2
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-php${{ matrix.php }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-php${{ matrix.php }}-
+
+      - name: Install PHP dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress --no-scripts
+
+      - name: Run package discovery
+        run: php artisan package:discover --ansi
+
+      - name: Bootstrap environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate --ansi
+
+      - name: Pint (code style — dry run)
+        run: ./vendor/bin/pint --test
+
+      - name: Pest (unit + feature tests)
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+          SESSION_DRIVER: array
+          CACHE_STORE: array
+          QUEUE_CONNECTION: sync
+          MAIL_MAILER: array
+        run: ./vendor/bin/pest --colors=always --compact
+
+  frontend-build:
+    name: Vite build (Tailwind + PostCSS)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build assets
+        run: npm run build
+
+      - name: Verify build output
+        run: |
+          test -d public/build/assets || { echo "::error::public/build/assets missing"; exit 1; }
+          ls public/build/assets/ | grep -E '\.(css|js)$' > /dev/null || { echo "::error::no compiled assets in public/build/assets/"; exit 1; }
+          echo "Build OK — assets present:"
+          ls -la public/build/assets/

@@ -1,5 +1,7 @@
 # Winfin PIV
 
+[![CI](https://github.com/blancosampedro-ship-it/pivscrtm/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/blancosampedro-ship-it/pivscrtm/actions/workflows/ci.yml)
+
 > CMMS de gestión de paneles de información al viajero (PIVs) en marquesinas — versión moderna en Laravel 12 + Filament 3.
 
 ---
