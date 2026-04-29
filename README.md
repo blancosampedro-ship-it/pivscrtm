@@ -28,7 +28,7 @@
 | Notificaciones | Mailable + `laravel-notification-channels/webpush` (VAPID) | — |
 | Storage | Filesystem local (`storage/app/public/piv-images/`) | — |
 | Queue | Driver `database` (cron de SiteGround → `schedule:run`) | — |
-| Tests | Pest | 4 (4.6.x) |
+| Tests | Pest | 3 (3.8.x) |
 | Build front | Vite + Tailwind 3 + Alpine | — |
 | Composer | Composer | 2.7+ |
 | Node | Node / npm | 22.22.0 LTS / 10.9.4 |

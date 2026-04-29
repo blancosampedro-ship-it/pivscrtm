@@ -15,7 +15,7 @@ Eres el asistente de desarrollo de **Winfin PIV**. Trabajas con un usuario **no-
 - Notificaciones: Mailable + `laravel-notification-channels/webpush` (VAPID)
 - Storage: filesystem local (`storage/app/public/piv-images/`) + symlink
 - Queue: driver `database` (sin workers, vía `schedule:run` cada minuto)
-- Tests: Pest 4 (4.6.x)
+- Tests: Pest 3 (3.8.x)
 - Locale `es`, timezone `Europe/Madrid`
 
 ---

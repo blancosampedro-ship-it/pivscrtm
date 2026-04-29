@@ -34,7 +34,7 @@ Existe una app PHP procedural (2014, retoques en 2025) en `https://winfin.es`. F
 - **PWA (no nativa)** — los técnicos solo necesitan cámara, formulario y notificación push; la PWA cubre los tres con cero coste de tiendas.
 - **Fortify (sin Breeze)** — el scaffolding visual de Breeze sobra; Fortify expone solo la lógica de auth, que integramos con Filament + nuestro guard custom SHA1→bcrypt.
 - **Driver de queue `database`** — SiteGround GoGeek es compartido y no permite workers persistentes; usamos cron de SiteGround → `schedule:run` cada minuto.
-- **Pest 4** — tests legibles, integración nativa con Laravel. (Versión instalada: 4.6.3 + pest-plugin-laravel 4.1.x. La sintaxis es retrocompatible con tests escritos para Pest 3.)
+- **Pest 3** — tests legibles, integración nativa con Laravel. (Versión instalada: 3.8.6 + pest-plugin-laravel 3.x. Pest 4 requiere PHP 8.3+, incompatible con prod SiteGround 8.2.30.)
 - **MySQL existente (`dbvnxblp2rzlxj`)** — coexistencia con la app vieja sin migración de datos.
 
 ---
