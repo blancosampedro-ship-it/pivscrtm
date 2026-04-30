@@ -8,6 +8,7 @@ use App\Casts\Latin1String;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Cierre de una asignación tipo=1 (correctivo). 65.901 filas en prod.
@@ -58,5 +59,15 @@ class Correctivo extends Model
     public function tecnico(): BelongsTo
     {
         return $this->belongsTo(Tecnico::class, 'tecnico_id', 'tecnico_id');
+    }
+
+    /**
+     * Fotos asociadas al cierre del correctivo (tabla nueva lv_correctivo_imagen,
+     * ADR-0006). Sin FK física — relación lógica por correctivo_id.
+     */
+    public function imagenes(): HasMany
+    {
+        return $this->hasMany(LvCorrectivoImagen::class, 'correctivo_id', 'correctivo_id')
+            ->orderBy('posicion');
     }
 }
