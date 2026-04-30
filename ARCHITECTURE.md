@@ -73,50 +73,66 @@ flowchart LR
 
 ### 5.1 Tablas legacy reutilizadas (NO se altera schema en Fase 1)
 
-| Tabla | Campos clave | Comentario |
-|-------|--------------|------------|
-| `piv` | `id`, `codigo`, `municipio` (VARCHAR con `modulo_id`), `direccion`, `lat`, `lng`, `operador_id`, `operador_id_2`, `operador_id_3`, `mantenimiento`, `status` | Panel físico. Hasta 3 operadores responsables. |
-| `averia` | `id`, `piv_id`, `fecha` (TIMESTAMP), `notas`, `operador_id`, `status` | Incidencia reportada. |
-| `asignacion` | `id`, `averia_id`, `tecnico_id`, `tipo` (1=correctivo, 2=revisión), `fecha`, `status` | Asignación técnico↔avería/revisión. |
-| `correctivo` | `id`, `asignacion_id`, `diagnostico`, `accion`, `fecha`, `imagen` | Cierre tipo=1. |
-| `revision` | `id`, `asignacion_id`, `fecha` (VARCHAR(100)!), checks (`aspecto`, `funcionamiento`, `audio`, `fecha_hora`, `precision_paso`, `actuacion`), `notas` | Cierre tipo=2. |
-| `tecnico` | `id`, `nombre_completo`, `dni`, `n_seguridad_social`, `ccc`, `telefono`, `direccion`, `email`, `password` (SHA1), `activo` | 65 en BD, 3 activos. **Datos RGPD sensibles**. |
-| `operador` | `id`, `nombre`, `cif`, `responsable`, `email`, `domicilio`, `password` (SHA1) | 41 clientes finales. |
-| `modulo` | `id`, `tipo`, `nombre` | Catálogo polimórfico (ver 5.3). |
-| `piv_imagen` | `id`, `piv_id`, `path`, `fecha` | AUTO_INCREMENT=1510, filas reales=1135 → 375 huérfanos. |
-| `instalador_piv` | `id`, `piv_id`, `instalador`, `fecha` | Histórico instalación. |
-| `desinstalado_piv` | `id`, `piv_id`, `motivo`, `fecha` | Histórico desinstalación. |
-| `reinstalado_piv` | `id`, `piv_id`, `fecha` | Histórico reinstalación. |
-| `u1` | `id`, `username`, `email`, `password` (SHA1) | Admins (1 usuario hoy). |
-| `session` | (legacy PHP) | No se toca; Laravel usa `lv_sessions`. |
+> **Schema verificado contra `INFORMATION_SCHEMA` en producción 2026-04-30.** Esta sección reemplaza la versión planificada inicial — ver ADRs 0006/0007/0008 para decisiones derivadas de las divergencias encontradas. Convenciones legacy comunes: PKs son `<tabla>_id` (excepto `u1` que usa `user_id`); columnas password se llaman `clave` en `tecnico` y `operador` (solo `u1.password` se llama `password`); status usa tinyint con `1=activo` por convención; charset MySQL es `latin1` con conexión `utf8mb4` (mojibake en lectura — ver §11 y Bloque 03 mutators obligatorios).
+
+| Tabla | PK | Columnas (orden BD) | Tipo / Notas |
+|-------|----|----|----|
+| `piv` (575 filas) | `piv_id` | `parada_cod`, `cc_cod`, `fecha_instalacion`, `n_serie_piv`, `n_serie_sim`, `n_serie_mgp`, `tipo_piv`, `tipo_marquesina`, `tipo_alimentacion`, `industria_id`, `concesionaria_id`, `direccion`, `municipio`, `status`, `operador_id`, `operador_id_2`, `operador_id_3`, `prevision`, `observaciones`, `mantenimiento`, `status2` | Panel físico. **Sin `lat`/`lng`**: si la PWA operador necesita mapa, requiere geocoding desde `direccion`+`municipio`. `municipio` es varchar con `modulo_id` numérico (ver ADR-0007). `mantenimiento` es varchar(45), no fecha. `industria_id` y `concesionaria_id` apuntan a `modulo` (tipos 1 y ?). |
+| `averia` (66 392 filas) | `averia_id` | `operador_id`, `piv_id`, `notas` (varchar 500), `fecha` (TIMESTAMP default CURRENT_TIMESTAMP), `status`, `tecnico_id` | Incidencia reportada. Tiene `tecnico_id` (originalmente no documentado). |
+| `asignacion` (66 404 filas) | `asignacion_id` | `tecnico_id`, `fecha` (date), `hora_inicial`, `hora_final` (int), `tipo` (tinyint: 1=correctivo, 2=revisión), `averia_id` (int unsigned), `status` | Asignación técnico↔avería. **Sin `piv_id` directo**: se llega al PIV vía `averia_id → averia.piv_id`. Toda asignación REQUIERE `averia_id` (incluidas las tipo=2 — la app vieja crea avería stub para revisiones rutinarias; ver §7.b). `hora_inicial`/`hora_final` no documentados originalmente. |
+| `correctivo` (65 901 filas) | `correctivo_id` | `tecnico_id`, `asignacion_id`, `tiempo` (varchar(45) — horas decimales tipo "0.5"), `contrato`, `facturar_horas`, `facturar_desplazamiento`, `facturar_recambios` (4 tinyint), `recambios` (varchar(255) — qué se cambió/hizo), `diagnostico` (varchar(255)), `estado_final` (varchar(100) — típicamente "OK") | Cierre tipo=1. **Sin `accion`, `fecha`, `imagen`** (lo que ARCHITECTURE asumía). Decisión arquitectónica de mapeo en ADR-0006: `recambios` cumple rol de "acción"; nueva tabla `lv_correctivo_imagen` para fotos. |
+| `revision` (filas) | `revision_id` (int unsigned) | `tecnico_id`, `asignacion_id`, `fecha` (varchar(100) — formatos heterogéneos), `ruta` (varchar(100)), `aspecto`, `funcionamiento`, `actuacion`, `audio`, `lineas`, `fecha_hora`, `precision_paso` (varchar(100) cada uno — texto libre, no enum), `notas` (varchar(100)) | Cierre tipo=2. Los checks son texto libre (no `OK`/`KO` enforced en DB; el front los limita a esos valores). |
+| `tecnico` (65 filas, 3 activos) | `tecnico_id` | `usuario`, **`clave`** (varchar(200) SHA1), `email`, `nombre_completo`, `dni`, `carnet_conducir`, `direccion`, `ccc`, `n_seguridad_social`, `telefono`, `status` (tinyint default 1) | **Password legacy se llama `clave`, NO `password`** — ver ADR-0008. Datos RGPD sensibles: `dni`, `n_seguridad_social`, `ccc`, `telefono`, `direccion`, `email`, `carnet_conducir`. |
+| `operador` (41 filas) | `operador_id` | `usuario`, **`clave`** (varchar(255) SHA1), `email`, `domicilio`, `lineas`, `responsable`, `razon_social`, `cif`, `status` | Password legacy `clave` (no `password`). `razon_social` es el nombre comercial (no `nombre`). |
+| `modulo` (200+ filas) | `modulo_id` | `nombre`, `tipo` (int) | Catálogo polimórfico — ver §5.3 con tipos completos. |
+| `piv_imagen` (1135 filas) | `piv_imagen_id` | `piv_id`, **`url`** (varchar(255), no `path`), **`posicion`** (int, no `fecha`) | AUTO_INCREMENT=1510 → 375 huérfanos. Sin info temporal. |
+| `instalador_piv` | `instalador_piv_id` | `piv_id`, **`instalador_id`** (FK a `u1.user_id`, no texto libre) | Histórico instalación. Sin `fecha`. |
+| `desinstalado_piv` | `desinstalado_piv_id` (int unsigned) | `piv_id`, `observaciones` (varchar 500), `pos` (int) | Histórico desinstalación. **Sin `fecha`, sin `motivo` enum** — toda la info en texto libre. |
+| `reinstalado_piv` | `reinstalado_piv_id` (int unsigned) | `piv_id`, `observaciones` (varchar 500), `pos` (int) | Histórico reinstalación. Sin `fecha`. |
+| `u1` (1 fila) | **`user_id`** (NO `u1_id`) | `username`, `password` (varchar 255 SHA1), `email` | Admins. **Excepción a la convención de PKs `<tabla>_id`** — ver ADR-0008. Aquí sí se llama `password`. |
+| `session` (legacy PHP) | `session_id` (varchar 255) | `user_id` (varchar 255), `rol` (int) | Tabla legacy de sesiones PHP. La nueva app NO la toca; Laravel usa `lv_sessions`. |
+
+**Nota sobre el `status`**: la app vieja usa varios significados para `status` según tabla. En `piv` también hay un `status2` (probablemente snapshot del estado del PIV en cada momento). Sin diccionario formal — investigación pendiente cuando llegue el dashboard (Bloque 10).
 
 ### 5.2 Diagrama ER simplificado
 
 ```mermaid
 erDiagram
-    PIV ||--o{ AVERIA : "reporta"
-    AVERIA ||--|| ASIGNACION : "genera (tipo=1)"
-    PIV ||--o{ ASIGNACION : "revisión directa (tipo=2)"
-    ASIGNACION }o--|| TECNICO : "asignada a"
+    PIV ||--o{ AVERIA : "reporta (averia.piv_id)"
+    AVERIA ||--|| ASIGNACION : "genera (asignacion.averia_id, ambos tipos)"
+    ASIGNACION }o--|| TECNICO : "asignada a (tecnico_id)"
     ASIGNACION ||--o| CORRECTIVO : "cierre tipo=1"
     ASIGNACION ||--o| REVISION   : "cierre tipo=2"
     PIV }o--o{ OPERADOR : "operador_id / _2 / _3"
-    PIV ||--o{ PIV_IMAGEN : ""
-    MODULO ||..o{ PIV : "municipio (modulo_id en VARCHAR)"
-    MODULO ||..o{ REVISION : "checks por tipo 9-14"
+    PIV ||--o{ PIV_IMAGEN : "fotos del panel"
+    PIV }o--|| MODULO_MUNICIPIO : "piv.municipio (modulo tipo=5)"
+    PIV }o--|| MODULO_INDUSTRIA : "piv.industria_id (modulo tipo=1)"
+    REVISION }o..o{ MODULO_CHECKS : "checks por tipo 9-14"
+    U1 ||--o{ INSTALADOR_PIV : "instalador_id"
 ```
 
-### 5.3 Catálogo `modulo` (polimórfico por `tipo`)
+> **Importante**: la app vieja crea **una avería stub** incluso para revisiones mensuales rutinarias (`asignacion.tipo=2`), porque `asignacion` no tiene `piv_id` directo. El bug histórico de "REVISION MENSUAL" (ADR-0004) es consecuencia: la avería stub se rellena con `notas="REVISION MENSUAL Y OK"` y se queda como tipo=1 si el formulario `calendar.php` no cambia el dropdown a "Mantenimiento".
 
-| `tipo` | Uso |
-|--------|-----|
-| 9 | Aspecto |
-| 10 | Funcionamiento |
-| 11 | Actuación |
-| 12 | Audio |
-| 13 | Fecha/hora |
-| 14 | Precisión de paso |
-| (sin filtro) | Municipios — `piv.municipio` (VARCHAR) guarda el `modulo.id` numérico |
+### 5.3 Catálogo `modulo` (polimórfico por `tipo`) — schema completo verificado
+
+`modulo` es realmente un catálogo de catálogos. La tabla tiene **12 tipos distintos**, cada uno representando una categoría de valores reutilizables.
+
+| `tipo` | Uso | Ejemplos | Apuntada por |
+|--------|-----|----------|--------------|
+| 1 | Marca/Industria del PIV (fabricante) | EOR, GMV, PRO, ETR, EOR/GMV | `piv.industria_id` |
+| 2 | Tipo de pantalla del PIV | Simple, Doble, TFT, Bus | (probable `piv.tipo_piv` por nombre, pendiente confirmar) |
+| 3 | Tipo de marquesina | Códigos crípticos tipo "MU Marq CTM (acera est lat)" | (probable `piv.tipo_marquesina`, pendiente) |
+| 4 | Tipo de alimentación eléctrica | Alumbrado público 24h, Alumbrado público nocturno, Pte. Ayto. acometida permanente | (probable `piv.tipo_alimentacion`, pendiente) |
+| **5** | **Municipios** (103 valores) | Alcalá de Henares, Alcobendas, Alcorcón, Aranjuez, Madrid… | `piv.municipio` (VARCHAR con `modulo_id` numérico — ver ADR-0007) |
+| 6 | Estado del PIV (texto) | "En Rev.", "OK", "Retirada" | (sin uso claro — `piv.status` es tinyint, no apunta aquí) |
+| 9 | Aspecto (check de revisión) | OK, KO, N/A | `revision.aspecto` |
+| 10 | Funcionamiento | OK/KO/N/A | `revision.funcionamiento` |
+| 11 | Actuación | OK/KO/N/A | `revision.actuacion` |
+| 12 | Audio | OK/KO/N/A | `revision.audio` |
+| 13 | Fecha/hora | OK/KO/N/A | `revision.fecha_hora` |
+| 14 | Precisión de paso | OK/KO/N/A | `revision.precision_paso` |
+
+**Pendiente**: validar empíricamente qué columna de `piv` referencia tipos 2/3/4/6 (parecen FKs lógicas pero `tipo_piv`/`tipo_marquesina`/`tipo_alimentacion` son varchar(255), no int). Investigación capturada en TODOS.md.
 
 ### 5.4 Tablas Laravel internas (prefijo `lv_`)
 
