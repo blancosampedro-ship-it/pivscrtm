@@ -11,12 +11,19 @@ Lista breve de follow-ups pendientes derivados de bloques ya ejecutados. Items o
 - [ ] **Bloque 02c** — Parche mínimo a `winfin.es/public_html/calendar.php` (líneas 199-206) para parar inyección continua de filas contaminadas (~80/semana). Cambios:
   1. Reordenar `<select name="tipo">` para que `<option value="2">Mantenimiento</option>` aparezca PRIMERO (default visual).
   2. Validación PHP server-side en el handler `newAsignacionAveria()` que rechace `tipo=1` cuando `notas` matchea `REVISION MENSUAL` (cualquier variante).
-  3. Excepción justificada a regla #1 (modificar app vieja) — requiere ADR breve `0006-parche-calendar-php.md`.
+  3. Excepción justificada a regla #1 (modificar app vieja) — requiere ADR `0009-parche-calendar-php.md` (números 0006/0007/0008 ocupados por schema alignment).
 
-### Hallazgos schema vs ARCHITECTURE.md
-- [ ] Corregir `ARCHITECTURE.md §5.1` con schema real verificado contra `INFORMATION_SCHEMA` el 2026-04-30: PKs `<tabla>_id`, columnas reales de cada tabla legacy. Lista detallada en `docs/security.md §Bloque 02 →Hallazgos schema`.
-- [ ] **Bloque 02d** — Decisión arquitectónica sobre `correctivo` (la tabla solo tiene `diagnostico`, no `accion` ni `imagen` que asumía ADR-0004). Opciones: `ALTER TABLE correctivo` (excepción regla #2 con ADR) vs nueva tabla `lv_correctivo_extras (correctivo_id, accion, imagen, foto_path)`. **Bloquea Bloque 09**. Requiere ADR breve.
-- [ ] **Bloque 02e** — Investigar cómo se rellena `piv.municipio` en producción (¿texto libre? ¿id de catálogo no documentado? ¿enum implícito?) y proponer validación correcta. Las copilot-instructions dicen `Rule::exists('modulo','id')` y eso es **incorrecto** (`modulo` contiene tipos de PIV/marquesina/alimentación). **Bloquea Bloque 07**.
+### Hallazgos schema vs ARCHITECTURE.md ✅ resueltos en pre-Bloque 03 schema alignment (PR #2 si aprobado)
+- [x] ~~Corregir `ARCHITECTURE.md §5.1` con schema real~~ → hecho en commit `docs: replace ARCHITECTURE §5.1-5.3 with verified schema from prod`.
+- [x] ~~**Bloque 02d** — Decisión arquitectónica sobre `correctivo`~~ → resuelto en **ADR-0006** (reuso de `recambios`/`estado_final`/`tiempo` legacy + nueva tabla `lv_correctivo_imagen` para fotos del cierre).
+- [x] ~~**Bloque 02e** — Investigar cómo se rellena `piv.municipio`~~ → resuelto en **ADR-0007** (apunta a `modulo` con `tipo=5`; centinela `"0"` permitido para "sin asignar"; validación closure custom).
+- [x] ~~Documentar nombres reales auth columns~~ → resuelto en **ADR-0008** (`tecnico.clave`, `operador.clave`, `u1.password`; `u1.user_id` PK excepción).
+
+### Hallazgos schema nuevos (descubiertos en pre-Bloque 03)
+- [ ] **Bloque 02f** — Decisión + implementación geocoding (lat/lng) para los 575 paneles. ARCHITECTURE.md asumía coordenadas en `piv` pero **no existen las columnas**. Bloquea PWA operador (Bloque 12) si requiere mapa visual. Opciones en roadmap entrada 02f.
+- [ ] Confirmar empíricamente qué columnas de `piv` (`tipo_piv`, `tipo_marquesina`, `tipo_alimentacion`) son referencias lógicas a `modulo` tipos 2/3/4 vs texto libre. Son varchar(255), no int — sospecha: texto libre con valores que coinciden parcialmente con nombres de modulo. Sin urgencia, captura datos reales para Bloque 07 form fields.
+- [ ] Confirmar si `modulo` tipo=6 ("En Rev.", "OK", "Retirada") es el catálogo legacy de `piv.status` (tinyint). Sin urgencia.
+- [ ] Documentar significado de `piv.status` (tinyint) y `piv.status2` (tinyint, default 1) — ¿son redundantes? ¿uno es lifecycle y otro snapshot? Pendiente investigación cuando llegue Bloque 10 dashboard.
 
 ### Operación de mantenimiento
 - [ ] **2026-05-07** — Borrado del tombstone del dump SQL público:
