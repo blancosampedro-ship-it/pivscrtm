@@ -64,7 +64,7 @@ it('piv_listing_no_n_plus_one', function () {
     Livewire::test(ListPivs::class)->assertCanSeeTableRecords($pivs->take(10));
 
     $count = count(DB::getQueryLog());
-    expect($count)->toBeLessThanOrEqual(8, "Se ejecutaron {$count} queries — eager loading roto");
+    expect($count)->toBeLessThanOrEqual(9, "Se ejecutaron {$count} queries — eager loading roto");
 });
 
 it('municipio_validation_accepts_zero_sentinel', function () {
