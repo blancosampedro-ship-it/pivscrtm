@@ -1,0 +1,55 @@
+/* Filament admin theme — Winfin PIV (DESIGN.md §9 Aplicación al stack/Filament).
+ *
+ * Hereda los presets oficiales de Filament + reaplica los tokens DESIGN.md
+ * (cobalto, Instrument Serif + General Sans, fondo cálido FAFAF7).
+ */
+
+@import "../../../../vendor/filament/filament/resources/css/theme.css";
+
+/* Fuentes vía Bunny Fonts (mirror RGPD-friendly).
+ * Justificación: tribunales europeos contra fonts.googleapis.com.
+ */
+@import url("https://fonts.bunny.net/css?family=instrument-serif:400,400i&display=swap");
+@import url("https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap");
+
+@config 'tailwind.config.js';
+
+/* ---- Aplicación de los tokens DESIGN.md sobre el shell de Filament ----
+ *
+ * Filament define sus propios CSS variables (--primary-*, etc) — el preset
+ * `colors(['primary' => Color::hex('#1D3F8C')])` del PanelProvider las regenera
+ * a partir del cobalto. Aquí sobreescribimos solo las decisiones tipográficas
+ * y de fondo que NO se cubren con `colors()`.
+ */
+
+:root {
+    --fi-font-family: '"General Sans"', "ui-sans-serif", "system-ui", sans-serif;
+    --fi-display-font-family: '"Instrument Serif"', "ui-serif", "Georgia", serif;
+}
+
+body.fi-body {
+    font-family: var(--fi-font-family);
+    background-color: #FAFAF7;
+    color: #0F1115;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Titulares de página en Instrument Serif (DESIGN.md §3) */
+.fi-header-heading,
+.fi-section-header-heading,
+.fi-page-heading {
+    font-family: var(--fi-display-font-family);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+}
+
+/* Cards con border-radius 8px (DESIGN.md §6 Border radius) */
+.fi-section,
+.fi-card {
+    border-radius: 8px;
+}
+
+/* Status pills con padding compacto (DESIGN.md §10.3) */
+.fi-badge {
+    border-radius: 9999px;
+}
