@@ -382,7 +382,9 @@ class PivResource extends Resource
     {
         return [
             PivResource\RelationManagers\AveriasRelationManager::class,
-            PivResource\RelationManagers\AsignacionesRelationManager::class,
+            // AsignacionesRelationManager dropped: HasManyThrough no soportado por Filament 3
+            // RelationManager (limitación documentada). Info de asignación accesible vía
+            // columnas tipo/horario/status en AveriasRelationManager. Ver Bloque 08e.
         ];
     }
 
