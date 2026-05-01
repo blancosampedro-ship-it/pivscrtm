@@ -196,7 +196,7 @@ class AsignacionResource extends Resource
                 Tables\Actions\ViewAction::make()
                     ->slideOver()
                     ->modalWidth('2xl')
-                    ->infolist(fn (Infolist $i) => self::infolist($i)),
+                    ->infolist(fn (Infolist $infolist) => self::infolist($infolist)),
                 Tables\Actions\EditAction::make()->iconButton(),
             ]);
     }
@@ -207,45 +207,74 @@ class AsignacionResource extends Resource
             Infolists\Components\Section::make('Asignación')
                 ->columns(3)
                 ->schema([
-                    Infolists\Components\TextEntry::make('asignacion_id')->label('ID')->extraAttributes(['data-mono' => true]),
-                    Infolists\Components\TextEntry::make('fecha')->date('d M Y'),
-                    Infolists\Components\TextEntry::make('tipo')
+                    Infolists\Components\TextEntry::make('asignacion_id')
+                        ->label('ID')
+                        ->extraAttributes(['data-mono' => true]),
+                    Infolists\Components\TextEntry::make('fecha')
+                        ->date('d M Y')
+                        ->default('—'),
+                    Infolists\Components\TextEntry::make('tipo_label')
+                        ->label('Tipo')
                         ->badge()
-                        ->formatStateUsing(fn ($state) => match ((int) $state) {
+                        ->getStateUsing(fn ($record) => match ((int) $record->tipo) {
                             1 => 'Correctivo',
                             2 => 'Revisión rutinaria',
                             default => 'Indefinido',
                         })
-                        ->color(fn ($state) => match ((int) $state) {
+                        ->color(fn ($record) => match ((int) $record->tipo) {
                             1 => 'danger',
                             2 => 'success',
                             default => 'gray',
                         }),
                     Infolists\Components\TextEntry::make('horario')
-                        ->getStateUsing(fn (Asignacion $r) => $r->hora_inicial && $r->hora_final ? sprintf('%02d–%02d h', $r->hora_inicial, $r->hora_final) : '—'),
-                    Infolists\Components\TextEntry::make('tecnico.nombre_completo')->label('Técnico')->placeholder('—'),
-                    Infolists\Components\TextEntry::make('status')->badge(),
+                        ->label('Horario')
+                        ->getStateUsing(fn ($record) => $record->hora_inicial && $record->hora_final
+                            ? sprintf('%02d–%02d h', $record->hora_inicial, $record->hora_final)
+                            : '—'),
+                    Infolists\Components\TextEntry::make('tecnico_nombre')
+                        ->label('Técnico')
+                        ->getStateUsing(fn ($record) => $record->tecnico?->nombre_completo ?? '—'),
+                    Infolists\Components\TextEntry::make('status')
+                        ->badge()
+                        ->default('—'),
                 ]),
 
             Infolists\Components\Section::make('Avería origen')
                 ->schema([
-                    Infolists\Components\TextEntry::make('averia.averia_id')->label('Avería')->prefix('#')->extraAttributes(['data-mono' => true]),
-                    Infolists\Components\TextEntry::make('averia.fecha')->dateTime('d M Y · H:i'),
-                    Infolists\Components\TextEntry::make('averia.notas')->label('Notas')->columnSpanFull()->placeholder('—'),
+                    Infolists\Components\TextEntry::make('averia_id_display')
+                        ->label('Avería')
+                        ->getStateUsing(fn ($record) => $record->averia?->averia_id ? '#'.$record->averia->averia_id : '— Sin avería —')
+                        ->extraAttributes(['data-mono' => true]),
+                    Infolists\Components\TextEntry::make('averia_fecha')
+                        ->label('Fecha avería')
+                        ->getStateUsing(fn ($record) => $record->averia?->fecha?->format('d M Y · H:i') ?? '—'),
+                    Infolists\Components\TextEntry::make('averia_notas')
+                        ->label('Notas avería')
+                        ->getStateUsing(fn ($record) => $record->averia?->notas ?? '—')
+                        ->columnSpanFull(),
                 ]),
 
             Infolists\Components\Section::make('Panel afectado')
                 ->columns(2)
                 ->schema([
-                    Infolists\Components\TextEntry::make('averia.piv.parada_cod')->label('Parada')->extraAttributes(['data-mono' => true]),
-                    Infolists\Components\TextEntry::make('averia.piv.municipioModulo.nombre')->label('Municipio')->placeholder('—'),
+                    Infolists\Components\TextEntry::make('piv_parada')
+                        ->label('Parada')
+                        ->getStateUsing(fn ($record) => $record->averia?->piv ? mb_strtoupper(trim((string) $record->averia->piv->parada_cod)) : '—')
+                        ->extraAttributes(['data-mono' => true]),
+                    Infolists\Components\TextEntry::make('piv_municipio')
+                        ->label('Municipio')
+                        ->getStateUsing(fn ($record) => $record->averia?->piv?->municipioModulo?->nombre ?? '—'),
                 ]),
 
             Infolists\Components\Section::make('Cierre')
                 ->description('Form de cierre llegará en Bloque 09 — aquí solo readonly de lo existente')
                 ->schema([
-                    Infolists\Components\TextEntry::make('correctivo.estado_final')->label('Estado final correctivo')->placeholder('—'),
-                    Infolists\Components\TextEntry::make('revision.revision_id')->label('Revisión cerrada')->formatStateUsing(fn ($state) => $state ? 'Sí (id #'.$state.')' : 'No')->placeholder('No'),
+                    Infolists\Components\TextEntry::make('correctivo_estado')
+                        ->label('Estado final correctivo')
+                        ->getStateUsing(fn ($record) => $record->correctivo?->estado_final ?? '— Sin cerrar —'),
+                    Infolists\Components\TextEntry::make('revision_cerrada')
+                        ->label('Revisión cerrada')
+                        ->getStateUsing(fn ($record) => $record->revision !== null ? 'Sí (id #'.$record->revision->revision_id.')' : 'No'),
                 ]),
         ]);
     }

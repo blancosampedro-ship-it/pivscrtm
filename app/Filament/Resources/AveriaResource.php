@@ -180,7 +180,7 @@ class AveriaResource extends Resource
                 Tables\Actions\ViewAction::make()
                     ->slideOver()
                     ->modalWidth('2xl')
-                    ->infolist(fn (Infolist $i) => self::infolist($i)),
+                    ->infolist(fn (Infolist $infolist) => self::infolist($infolist)),
                 Tables\Actions\EditAction::make()->iconButton(),
             ]);
     }
@@ -191,18 +191,25 @@ class AveriaResource extends Resource
             Infolists\Components\Section::make('Avería')
                 ->columns(2)
                 ->schema([
-                    Infolists\Components\TextEntry::make('averia_id')->label('ID')->extraAttributes(['data-mono' => true]),
-                    Infolists\Components\TextEntry::make('fecha')->dateTime('d M Y · H:i')->extraAttributes(['data-mono' => true]),
-                    Infolists\Components\TextEntry::make('status')->badge(),
-                    Infolists\Components\TextEntry::make('asignacion.tipo')
-                        ->label('Tipo')
+                    Infolists\Components\TextEntry::make('averia_id')
+                        ->label('ID')
+                        ->extraAttributes(['data-mono' => true]),
+                    Infolists\Components\TextEntry::make('fecha')
+                        ->dateTime('d M Y · H:i')
+                        ->extraAttributes(['data-mono' => true])
+                        ->default('—'),
+                    Infolists\Components\TextEntry::make('status')
                         ->badge()
-                        ->formatStateUsing(fn ($state) => match ((int) $state) {
+                        ->default('—'),
+                    Infolists\Components\TextEntry::make('asignacion_tipo_label')
+                        ->label('Tipo de asignación')
+                        ->badge()
+                        ->getStateUsing(fn ($record) => match ((int) ($record->asignacion?->tipo ?? 0)) {
                             1 => 'Correctivo',
-                            2 => 'Revisión',
-                            default => '—',
+                            2 => 'Revisión rutinaria',
+                            default => 'Sin asignación',
                         })
-                        ->color(fn ($state) => match ((int) $state) {
+                        ->color(fn ($record) => match ((int) ($record->asignacion?->tipo ?? 0)) {
                             1 => 'danger',
                             2 => 'success',
                             default => 'gray',
@@ -212,22 +219,38 @@ class AveriaResource extends Resource
             Infolists\Components\Section::make('Panel afectado')
                 ->columns(2)
                 ->schema([
-                    Infolists\Components\TextEntry::make('piv.parada_cod')->label('Parada')->extraAttributes(['data-mono' => true]),
-                    Infolists\Components\TextEntry::make('piv.direccion')->label('Dirección'),
-                    Infolists\Components\TextEntry::make('piv.municipioModulo.nombre')->label('Municipio')->placeholder('—'),
-                    Infolists\Components\TextEntry::make('piv.operadorPrincipal.razon_social')->label('Operador panel')->placeholder('—'),
+                    Infolists\Components\TextEntry::make('piv_parada')
+                        ->label('Parada')
+                        ->extraAttributes(['data-mono' => true])
+                        ->getStateUsing(fn ($record) => $record->piv ? mb_strtoupper(trim((string) $record->piv->parada_cod)) : '— Sin panel asociado —'),
+                    Infolists\Components\TextEntry::make('piv_direccion')
+                        ->label('Dirección')
+                        ->getStateUsing(fn ($record) => $record->piv?->direccion ?? '—'),
+                    Infolists\Components\TextEntry::make('piv_municipio')
+                        ->label('Municipio')
+                        ->getStateUsing(fn ($record) => $record->piv?->municipioModulo?->nombre ?? '—'),
+                    Infolists\Components\TextEntry::make('piv_operador_panel')
+                        ->label('Operador del panel')
+                        ->getStateUsing(fn ($record) => $record->piv?->operadorPrincipal?->razon_social ?? '—'),
                 ]),
 
             Infolists\Components\Section::make('Participantes')
                 ->columns(2)
                 ->schema([
-                    Infolists\Components\TextEntry::make('operador.razon_social')->label('Operador reporta')->placeholder('—'),
-                    Infolists\Components\TextEntry::make('tecnico.nombre_completo')->label('Técnico asignado')->placeholder('—'),
+                    Infolists\Components\TextEntry::make('operador_reporta')
+                        ->label('Operador reporta')
+                        ->getStateUsing(fn ($record) => $record->operador?->razon_social ?? '—'),
+                    Infolists\Components\TextEntry::make('tecnico_asignado')
+                        ->label('Técnico asignado')
+                        ->getStateUsing(fn ($record) => $record->tecnico?->nombre_completo ?? '—'),
                 ]),
 
             Infolists\Components\Section::make('Notas')
                 ->schema([
-                    Infolists\Components\TextEntry::make('notas')->placeholder('—')->columnSpanFull(),
+                    Infolists\Components\TextEntry::make('notas')
+                        ->hiddenLabel()
+                        ->default('— Sin notas —')
+                        ->columnSpanFull(),
                 ]),
         ]);
     }
