@@ -83,6 +83,25 @@ final class LegacyHashGuard
 
         $meta = self::TABLE_META[$roleHint];
 
+        // 0. Email fast-path (ADR-0010). Si lv_users tiene fila para este
+        //    (email, legacy_kind) con bcrypt válido, autenticamos sin consultar
+        //    la tabla legacy. Cubre el caso lv_users.email != legacy.email
+        //    (p. ej. admin del Bloque 05) y ahorra un query en el happy path
+        //    post-migración. NO escribe — la escritura sigue siendo updateOrCreate
+        //    por (legacy_kind, legacy_id) en el flujo legacy de abajo.
+        $fastPathUser = User::query()
+            ->where('email', $email)
+            ->where('legacy_kind', $roleHint)
+            ->whereNotNull('password')
+            ->first();
+
+        if ($fastPathUser !== null && Hash::check($password, $fastPathUser->password)) {
+            $this->rateLimiter->clear($rlKey);
+            Auth::login($fastPathUser);
+
+            return true;
+        }
+
         // 1. Resolver legacy SIEMPRE primero. Fuente de verdad de la identidad.
         $legacy = $this->db->table($meta['table'])
             ->where('email', $email)
