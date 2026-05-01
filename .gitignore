@@ -30,3 +30,8 @@ yarn-error.log
 Thumbs.db
 .gstack/
 .phpunit.cache
+
+# Filament published assets (regenerados por `php artisan filament:upgrade`).
+# No deben vivir en git — son output, no source.
+/public/css/filament
+/public/js/filament
