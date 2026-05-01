@@ -36,3 +36,16 @@ Lista breve de follow-ups pendientes derivados de bloques ya ejecutados. Items o
 ### Otros
 - [ ] **Confirmar granularidad cron SiteGround Site Tools UI**: opciones del dropdown ("cada 1 min" / "cada 5 min" / etc.). Si NO ofrece "cada 1 min", actualizar `docs/decisions/0001-stack.md §Consequences negativas` y revisar diseño queue. Owner: propietario (acceso a Site Tools UI).
 - [ ] **Bloque 13 (hardening webserver)** — eliminar `viejo/archivos/phpinfo.php` (info disclosure, 17 bytes, no crítico).
+
+## Pendientes Bloque 07 (smoke + audit encoding 2026-05-01)
+
+### Datos legacy con corrupción real (no fix por cast)
+Audit completo (~700 filas en piv/modulo/operador/tecnico) tras Bloque 07c (cast WINDOWS-1252) detectó **3 filas con corrupción real**: caracteres incorrectos almacenados literalmente en BD desde la app vieja, no resoluble por encoding fix.
+
+- [ ] **`piv.piv_id=18`** — `direccion` contiene "ESTACI**î**N FF." → debería ser "ESTACI**Ó**N FF.".
+- [ ] **`piv.piv_id=50`** — `direccion` contiene "DIRECCI**î**N MADRID" → debería ser "DIRECCI**Ó**N MADRID".
+- [ ] **`piv.piv_id=112`** — `direccion` contiene "CARMEN MART**ê**N GAYTE" → debería ser "CARMEN MART**Í**N GAYTE".
+
+Recomendación: aprovechar el cleanup masivo de Bloque 02b (typo-revisions) para incluir estas 3 fix puntuales en la misma pasada con backup + ADR. **No bloqueante** — direcciones siguen siendo legibles para el operario humano.
+
+Falso positivo descartado (correcto en su idioma): `operador.operador_id=41` razon_social "Transports Urbans i Serveis Generals, Societat An**ò**nima Laboral" — catalán correcto.
