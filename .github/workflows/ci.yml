@@ -76,6 +76,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: dom, curl, libxml, mbstring, zip, intl, fileinfo
+          coverage: none
+          tools: composer:v2
+
+      - name: Install PHP dependencies
+        # Necesario porque resources/css/filament/admin/theme.css importa
+        # vendor/filament/filament/resources/css/theme.css y
+        # vendor/filament/support/tailwind.config.preset.js (Bloque 05).
+        run: composer install --prefer-dist --no-interaction --no-progress --no-scripts
+
       - name: Setup Node 22
         uses: actions/setup-node@v4
         with:
