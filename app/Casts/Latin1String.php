@@ -26,8 +26,10 @@ use Illuminate\Database\Eloquent\Model;
 class Latin1String implements CastsAttributes
 {
     /**
-     * Lectura: bytes guardados como latin1 que MySQL devolvió tratándolos
-     * como utf8 → reinterpretar como latin1 y reconvertir a utf8 limpio.
+     * Lectura: prod tiene texto doblemente encoded (PHP 2014 escribió bytes
+     * utf8 en columna latin1 sin transcoding; la conexión utf8mb4 los
+     * retransforma a 4 bytes "Ã¡"). utf8_decode los devuelve a 2 bytes
+     * válidos utf8 "á". Ver ADR-0011.
      */
     public function get(Model $model, string $key, mixed $value, array $attributes): ?string
     {
@@ -35,12 +37,13 @@ class Latin1String implements CastsAttributes
             return null;
         }
 
-        return mb_convert_encoding((string) $value, 'UTF-8', 'ISO-8859-1');
+        return mb_convert_encoding((string) $value, 'ISO-8859-1', 'UTF-8');
     }
 
     /**
-     * Escritura: nuestro string utf8 limpio → bytes latin1 reinterpretables
-     * por MySQL como utf8 sin romper a la app vieja.
+     * Escritura: utf8 entrante "á" (c3 a1) -> 4 bytes "Ã¡" (c3 83 c2 a1).
+     * MySQL transcodifica de utf8mb4 connection a latin1 column -> 2 bytes
+     * (c3 a1) almacenados. Mismo patrón que la app vieja escribe. ADR-0011.
      */
     public function set(Model $model, string $key, mixed $value, array $attributes): ?string
     {
@@ -48,6 +51,6 @@ class Latin1String implements CastsAttributes
             return null;
         }
 
-        return mb_convert_encoding((string) $value, 'ISO-8859-1', 'UTF-8');
+        return mb_convert_encoding((string) $value, 'UTF-8', 'ISO-8859-1');
     }
 }
