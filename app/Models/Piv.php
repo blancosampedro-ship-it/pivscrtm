@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
@@ -90,6 +91,22 @@ class Piv extends Model
     public function averias(): HasMany
     {
         return $this->hasMany(Averia::class, 'piv_id', 'piv_id');
+    }
+
+    /**
+     * Asignaciones del panel via averías. HasManyThrough porque `asignacion`
+     * NO tiene `piv_id` directo — se llega vía `averia.piv_id` (ARCHITECTURE §5.2).
+     */
+    public function asignaciones(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Asignacion::class,
+            Averia::class,
+            'piv_id',           // FK on averia table → piv
+            'averia_id',        // FK on asignacion table → averia
+            'piv_id',           // local key on piv
+            'averia_id'         // local key on averia
+        );
     }
 
     public function imagenes(): HasMany
