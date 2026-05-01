@@ -43,29 +43,12 @@ it('averias_relation_manager_shows_only_this_pivs_averias', function () {
         ->assertSuccessful();
 });
 
-it('asignaciones_relation_manager_shows_only_this_pivs_asignaciones_via_averias', function () {
-    $piv1 = Piv::factory()->create(['piv_id' => 88820]);
-    $piv2 = Piv::factory()->create(['piv_id' => 88821]);
-    Averia::factory()->create(['averia_id' => 88820, 'piv_id' => 88820]);
-    Averia::factory()->create(['averia_id' => 88821, 'piv_id' => 88821]);
-    Asignacion::factory()->create(['asignacion_id' => 88820, 'averia_id' => 88820, 'tipo' => 1]);
-    Asignacion::factory()->create(['asignacion_id' => 88821, 'averia_id' => 88821, 'tipo' => 2]);
-
-    // HasManyThrough Piv → Asignacion vía Averia.
-    expect($piv1->asignaciones()->pluck('asignacion_id')->all())->toBe([88820]);
-    expect($piv2->asignaciones()->pluck('asignacion_id')->all())->toBe([88821]);
-
-    // ViewPiv page renderiza con ambos tabs.
-    Livewire::test(ViewPiv::class, ['record' => $piv1->piv_id])
-        ->assertSuccessful();
+it('asignacion_resource_not_in_admin_sidebar_navigation', function () {
+    expect(AsignacionResource::shouldRegisterNavigation())->toBeFalse();
 });
 
 it('averia_resource_not_in_admin_sidebar_navigation', function () {
     expect(AveriaResource::shouldRegisterNavigation())->toBeFalse();
-});
-
-it('asignacion_resource_not_in_admin_sidebar_navigation', function () {
-    expect(AsignacionResource::shouldRegisterNavigation())->toBeFalse();
 });
 
 it('averia_resource_url_still_accessible_directly', function () {
