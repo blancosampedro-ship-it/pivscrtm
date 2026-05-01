@@ -380,12 +380,13 @@ class PivResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            PivResource\RelationManagers\AveriasRelationManager::class,
-            // AsignacionesRelationManager dropped: HasManyThrough no soportado por Filament 3
-            // RelationManager (limitación documentada). Info de asignación accesible vía
-            // columnas tipo/horario/status en AveriasRelationManager. Ver Bloque 08e.
-        ];
+        // Bloque 08g: AveriasRelationManager eliminado. Filament 3 RelationManager + Livewire 3
+        // lazy mount no rehidrata $ownerRecord antes de bootedInteractsWithTable, crash
+        // "Cannot use ::class on null" en HasRecords::76. Reemplazado por tabla
+        // server-rendered en resources/views/filament/resources/piv-resource/partials/averias-table.blade.php,
+        // inyectada vía ViewPiv::$view custom.
+        // AsignacionesRelationManager dropped en 08e: HasManyThrough no soportado por Filament 3 RM.
+        return [];
     }
 
     public static function getPages(): array
