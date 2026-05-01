@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\UserFactory;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -26,7 +28,7 @@ use Illuminate\Notifications\Notifiable;
  * Password puede ser NULL hasta el primer login post-migración (ADR-0003 lazy
  * SHA1->bcrypt). legacy_password_sha1 se popula al vuelo y se borra tras rehash.
  */
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
@@ -85,6 +87,22 @@ class User extends Authenticatable
             'tecnico' => Tecnico::find($this->legacy_id),
             'operador' => Operador::find($this->legacy_id),
             default => null,
+        };
+    }
+
+    // ----------------------------------------------------------------
+    // Filament gate (Bloque 05)
+    // ----------------------------------------------------------------
+
+    /**
+     * Solo admins entran al panel `admin`. Si en el futuro hay panel
+     * `tecnico` u `operador`, discriminamos por $panel->getId().
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return match ($panel->getId()) {
+            'admin' => $this->isAdmin(),
+            default => false,
         };
     }
 }
