@@ -12,6 +12,13 @@ class ViewPiv extends ViewRecord
 {
     protected static string $resource = PivResource::class;
 
+    /**
+     * View custom para inyectar el partial de averías server-rendered.
+     * Bloque 08g: reemplazo del AveriasRelationManager (lazy mount roto en
+     * Filament 3 + Livewire 3, ver .github/copilot-instructions.md).
+     */
+    protected static string $view = 'filament.resources.piv-resource.pages.view-piv';
+
     protected function getHeaderActions(): array
     {
         return [
