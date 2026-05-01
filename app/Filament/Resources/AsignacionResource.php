@@ -22,6 +22,12 @@ class AsignacionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
 
+    /**
+     * Bloque 08d: asignaciones se consultan desde el panel via RelationManager
+     * tabs (DESIGN.md §10.4). URL accesible para reportes cross-panel.
+     */
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $modelLabel = 'asignación';
 
     protected static ?string $pluralModelLabel = 'asignaciones';
