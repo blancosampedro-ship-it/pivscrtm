@@ -22,61 +22,77 @@
 
 ## 2. Aesthetic Direction
 
-- **Direction:** **Editorial industrial española.** Disciplina tipográfica suiza/editorial + restraint cromático + un único gesto distintivo (regla 1px en color acento bajo títulos de página y de sección).
-- **Decoration level:** mínimo. Cero gradientes, cero patterns, cero blobs decorativos, cero iconos en círculos de colores. Solo la regla cobalto y los stripes verticales de los action-cards del técnico.
-- **Mood:** la app debe sentirse como un buen documento técnico europeo o como la señalética de RENFE/Metro. Lo opuesto a "otro panel admin Laravel". Nunca SaaS-marketing-glossy, nunca playful.
-- **Reference sites estudiados (research del 29 abr 2026):**
-  - https://limble.com (rechazado: lime + decoración SaaS)
-  - https://getmaintainx.com (rechazado: azul corporativo genérico)
-  - https://tractian.com/en (referente parcial: dirección industrial seria)
-  - https://filamentphp.com (estética por defecto a sobreescribir)
+- **Direction:** **Modern SaaS — productive precision.** Híbrido tipo Airtable / Linear / Stripe Dashboard / Notion databases — herramienta densa de operaciones diarias, no documento editorial. Tipografía técnica humanista, restraint cromático mantenido, foto del panel como dato visual primario, side-panel inspector para triage rápido sin navegar de página.
+- **Decoration level:** mínimo. Cero gradientes, cero patterns, cero blobs decorativos, cero iconos en círculos coloreados. Borders 1px hairline + cobalto solo en acentos puntuales (CTA primario, fila seleccionada, hover, active state).
+- **Mood:** la app debe sentirse como una **base de datos productiva con personalidad técnica** (Airtable + Plex). Power user dashboard. Información densa, escaneable, sin ceremonia. Foto del panel siempre cerca del nombre porque el ojo humano la usa antes que el código de parada.
+- **Reference sites estudiados:**
+  - https://airtable.com (referente principal: spreadsheet hybrid + side panel inspector + group-by toggles).
+  - https://linear.app (referente secundario: tabla densa, hover refinado, Geist típography).
+  - https://stripe.com/dashboard (referente terciario: card grids cuando aplica, restraint elegante).
+  - https://notion.so/databases (similar al referente principal).
+  - Anti-referentes: limble.com, getmaintainx.com, filamentphp.com default.
+
+**Pivot de dirección (1 may 2026):** la versión inicial fue "Editorial industrial española" con Instrument Serif + General Sans (29 abr 2026). Smoke real con datos prod reveló que el serif en chrome de UI lee como prensa cultural, no como herramienta diaria de operaciones. Tras `/design-shotgun` con 3 variantes (Linear / Stripe / Airtable), el usuario eligió Airtable-Mode. Ver §11 Decisions Log y `~/.gstack/projects/winfin-piv/designs/admin-pivs-list-saas-pivot-20260501/`.
 
 ---
 
 ## 3. Typography
 
-> Solo dos familias en todo el sistema. Ninguna otra está permitida.
+> Dos familias técnicas (sans + mono) + un único gesto editorial residual (serif solo en wordmark). Ninguna otra fuente permitida.
 
 | Rol | Fuente | Tamaño / weight | Notas |
 |---|---|---|---|
-| **Display / titulares de página** | **Instrument Serif** (Google Fonts) | 36–56 px / 400 | Solo en `<h1>`, KPIs grandes y los títulos de los action-cards del técnico. Cursiva (`<em>`) reservada para acentuar el wordmark "Winfin *PIV*" y muy puntual énfasis. |
-| **Section headings** | Instrument Serif | 22–28 px / 400 | Subsecciones, título de la pregunta "¿Qué vas a registrar?" en el técnico. |
-| **Body / UI / formularios / tablas** | **General Sans** (Fontshare) | 14–16 px / 400, 500, 600, 700 | Todo lo demás. Incluye labels, inputs, navegación, captions. |
-| **Tabular numerics (datos)** | General Sans con `font-variant-numeric: tabular-nums` | 13–15 px | Fechas, IDs, métricas en tablas y KPIs. NO usar fuente monoespaciada separada. |
-| **Code / terminal output** | N/A (no se muestra código a usuarios finales). | — | Si hace falta en algún panel admin de debug, `ui-monospace`. |
+| **Body / UI / formularios / tablas** | **IBM Plex Sans** (Bunny Fonts) | 12–15 px / 400, 500, 600, 700 | Toda la chrome de la app: labels, inputs, navegación, columnas de tabla, captions. Humanist grotesque con personalidad técnica más expresiva que un Helvetica neutro. |
+| **Headings de página** | IBM Plex Sans | 20–24 px / 600 (semibold) | `<h1>` y `<h2>`. Letter-spacing tight (-0.005em). NUNCA serif. |
+| **Section headers / labels small-caps** | IBM Plex Sans | 9–11 px / 600 + letter-spacing 0.06–0.10em + uppercase | Field labels en inspector, group headers ("OPERATIVOS · 561"), table column headers, sidebar section dividers. |
+| **Tabular data (IDs, paradas, fechas, métricas)** | **IBM Plex Mono** (Bunny Fonts) | 10–14 px / 400, 500, 600 | TODOS los códigos: `piv_id` (`#00176`), `parada_cod` (`06036`), n_serie, fechas, contadores. `font-variant-numeric: tabular-nums` automático en mono. Usar también para counts en pills (`561`) y badges. |
+| **Wordmark "Winfin *PIV*" (gesto editorial residual)** | **Instrument Serif** italic 400, mezclada con IBM Plex Sans 700 | 14–16 px | Único uso permitido. Solo en sidebar header y top bar. La "P" cursiva es el gesto distintivo de marca. |
 
 ### Carga de fuentes
 
-- **Producción:** vía **Bunny Fonts** (`fonts.bunny.net`) — mirror RGPD-friendly de Google Fonts. Justificación: tribunales europeos han fallado contra el uso directo de `fonts.googleapis.com` por enviar IPs de usuarios a Google. Bunny no traquea.
+- **Producción:** vía **Bunny Fonts** (`fonts.bunny.net`) — mirror RGPD-friendly de Google Fonts.
 - **Stack CSS:**
   ```css
-  --serif: "Instrument Serif", ui-serif, Georgia, serif;
-  --sans: "General Sans", ui-sans-serif, system-ui, sans-serif;
+  --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+  --display: "Instrument Serif", ui-serif, Georgia, serif;  /* SOLO wordmark */
   ```
-- **Imports recomendados** en `resources/css/app.css`:
+- **Imports en `resources/css/app.css`:**
   ```css
+  @import url("https://fonts.bunny.net/css?family=ibm-plex-sans:400,500,600,700&display=swap");
+  @import url("https://fonts.bunny.net/css?family=ibm-plex-mono:400,500,600&display=swap");
   @import url("https://fonts.bunny.net/css?family=instrument-serif:400,400i&display=swap");
-  @import url("https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap");
   ```
-- **Activar tabular-nums por defecto en tablas y datos:**
+- **Activar tabular-nums por defecto en datos:**
   ```css
-  .data, .kpi-value, .info-value { font-variant-numeric: tabular-nums; }
+  .mono, [class*="kpi"], [data-numeric] { font-variant-numeric: tabular-nums; }
   ```
 
-### Escala modular (ratio 1.250)
+### Escala modular (ratio 1.200, más densa que la anterior 1.250)
 
-`12 / 14 / 16 / 20 / 25 / 31 / 39 / 49 / 61 px`
+`10 / 11 / 12 / 13 / 14 / 15 / 18 / 22 / 26 / 32 px`
 
-Mapeo a Tailwind:
-`text-xs / text-sm / text-base / text-lg / text-xl / text-2xl / text-3xl / text-4xl / text-5xl`.
+Mapeo a Tailwind extendido:
+- `text-2xs` 10px (small caps labels)
+- `text-xs` 11px
+- `text-sm` 12px (table data default)
+- `text-base` 13px (UI body)
+- `text-md` 14px (input values)
+- `text-lg` 15px (card titles)
+- `text-xl` 18px (section h2)
+- `text-2xl` 22px (page h1 — semibold)
+- `text-3xl` 26px (rare display)
+
+Densidad alta significa muchas cosas a 12-13 px. Asegurar contraste WCAG AAA en esos tamaños.
 
 ### Anti-patrones tipográficos (NUNCA)
 
-- ❌ Inter, Roboto, Arial, Helvetica, Open Sans, Lato, Montserrat, Poppins, Space Grotesk como display ni body.
+- ❌ Inter, Roboto, Arial, Helvetica, Open Sans, Lato, Montserrat, Poppins, Space Grotesk, General Sans como sans principal.
+- ❌ Geist Sans (descartada en favor de Plex tras evaluar — Plex tiene más carácter humanista).
 - ❌ `system-ui` / `-apple-system` como fuente principal.
-- ❌ Mezclar más de dos familias.
-- ❌ Usar Instrument Serif en formularios, inputs, body o navegación.
-- ❌ Cursiva (`<em>` Instrument Serif) fuera del wordmark y ocasional acento — nunca en párrafos enteros.
+- ❌ Instrument Serif fuera del wordmark "Winfin PIV".
+- ❌ Tipografía no-monospaced para `piv_id`, `parada_cod`, `n_serie`, fechas en tabla. Plex Mono obligatoria.
+- ❌ Mezclar más de tres familias (sans + mono + 1 serif residual del wordmark).
 
 ---
 
@@ -202,7 +218,7 @@ Es el azul de la señalética pública española (RENFE, Metro). Carga "infraest
 
 ### Filament 3.2
 
-- **Theme custom** vía `php artisan make:filament-theme`.
+- **Theme custom** ya implementado en `resources/css/filament/admin/theme.css` (Bloque 05). Pivot Bloque 07d: reemplazar fuentes Instrument Serif + General Sans → **IBM Plex Sans + Plex Mono**, mantener Instrument Serif solo para wordmark.
 - Override del primary color en `tailwind.config.js`:
   ```js
   primary: {
@@ -214,7 +230,13 @@ Es el azul de la señalética pública española (RENFE, Metro). Carga "infraest
     900: '#0A1838',
   }
   ```
-- Inyectar Instrument Serif y General Sans en el theme CSS.
+- **Densidad**: aplicar `->striped()` + `->paginated([25, 50, 100])` + row height ~36-40px (clase utility custom o CSS variable `--fi-row-height`). Tabla tipo Airtable, no spaced-out.
+- **Resource pattern para Variant C "Airtable-Mode"**:
+  - Tabla con `ImageColumn::make('imagenes_first.url')` 28×28 rounded-4px en primera columna.
+  - `ViewAction::make()->slideOver()->infolist(...)` para el side panel inspector — Filament tiene esto built-in.
+  - Infolist con `Components\ImageEntry::make('imagenes.0.url')` para galería.
+  - Columnas pequeñas: `text-xs` Plex Mono para IDs/paradas, `text-sm` Plex Sans para dirección/municipio.
+  - Filtros como `Tables\Grouping\Group` (Status / Municipio / Operador / Industria).
 - Usar `\Filament\Support\Colors\Color::rgb(...)` para registrar el cobalto.
 
 ### PWA técnico (Livewire + Volt + Tailwind 3)
@@ -285,3 +307,4 @@ Implementación: pill rounded-full, padding `2px 9px`, dot 6 px del color satura
 | 2026-04-29 | Azul cobalto `#1D3F8C` como único acento | Coherente con la señalética pública española (RENFE, Metro) y con el dominio del producto (transporte público). Evita deliberadamente el `blue-600` de Tailwind y el azul corporativo SaaS. |
 | 2026-04-29 | Instrument Serif + General Sans como únicas fuentes | Editorial serif para titulares y KPIs (gesto diferenciador frente a la categoría, que usa solo grotesques). Humanist sans para body/UI. Servidas vía Bunny Fonts (RGPD). |
 | 2026-04-29 | Action-cards apiladas con stripe lateral para separar avería/revisión | Implementación visual de la regla #11. Stripe + tinte + icono + subtítulo desambiguador = imposible confundir los dos flujos. |
+| 2026-05-01 | **Pivot a "Modern SaaS — productive precision" (Airtable-Mode).** Reemplazar Instrument Serif + General Sans por IBM Plex Sans + Plex Mono. Mantener Instrument Serif SOLO en wordmark. | Smoke real post-Bloque 07 con datos prod reveló que el serif en chrome lee como prensa cultural, no como herramienta diaria de operaciones. `/design-shotgun` con 3 variantes (Linear / Stripe / Airtable) — usuario eligió Airtable-Mode (variante C) por densidad alta + side panel inspector + group-by + galería multi-imagen. Cobalto y restraint cromático preservados. Variantes guardadas en `~/.gstack/projects/winfin-piv/designs/admin-pivs-list-saas-pivot-20260501/`. |
