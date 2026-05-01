@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PivResource\Pages;
+use App\Models\LvPivArchived;
 use App\Models\Modulo;
 use App\Models\Piv;
 use Closure;
@@ -14,6 +15,7 @@ use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\Section as InfolistSection;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -46,6 +48,7 @@ class PivResource extends Resource
             'industria:modulo_id,nombre',
             'municipioModulo:modulo_id,nombre',
             'imagenes',
+            'archive',
         ]);
     }
 
@@ -137,6 +140,7 @@ class PivResource extends Resource
             ->striped()
             ->paginated([25, 50, 100])
             ->defaultPaginationPageOption(25)
+            ->recordClasses(fn (Piv $record) => $record->isArchived() ? 'opacity-60' : null)
             ->columns([
                 Tables\Columns\ImageColumn::make('thumbnail_url')
                     ->label('')
@@ -190,6 +194,16 @@ class PivResource extends Resource
             ])
             ->defaultGroup('status')
             ->filters([
+                Tables\Filters\TernaryFilter::make('archived')
+                    ->label('Estado archivo')
+                    ->placeholder('Activos')
+                    ->trueLabel('Solo archivados')
+                    ->falseLabel('Todos (incluye archivados)')
+                    ->queries(
+                        true: fn (Builder $q) => $q->onlyArchived(),
+                        false: fn (Builder $q) => $q,
+                        blank: fn (Builder $q) => $q->notArchived(),
+                    ),
                 Tables\Filters\SelectFilter::make('status')
                     ->options([1 => 'Operativos', 0 => 'Inactivos']),
                 Tables\Filters\SelectFilter::make('municipio')
@@ -209,6 +223,91 @@ class PivResource extends Resource
                     ->infolist(fn (Infolist $infolist) => self::infolist($infolist)),
                 Tables\Actions\EditAction::make()
                     ->iconButton(),
+                Tables\Actions\Action::make('archive')
+                    ->label('Archivar')
+                    ->icon('heroicon-o-archive-box-arrow-down')
+                    ->iconButton()
+                    ->color('warning')
+                    ->visible(fn (Piv $record) => ! $record->isArchived())
+                    ->requiresConfirmation()
+                    ->modalHeading('Archivar panel')
+                    ->modalDescription('El panel quedará oculto del listado admin. Reversible.')
+                    ->modalSubmitActionLabel('Archivar')
+                    ->form([
+                        Forms\Components\Textarea::make('reason')
+                            ->label('Razón (opcional)')
+                            ->placeholder('Ej.: bus contaminante de proyecto antiguo')
+                            ->rows(2)
+                            ->maxLength(255),
+                    ])
+                    ->action(function (Piv $record, array $data) {
+                        LvPivArchived::create([
+                            'piv_id' => $record->piv_id,
+                            'archived_at' => now(),
+                            'archived_by_user_id' => auth()->id(),
+                            'reason' => $data['reason'] ?? null,
+                        ]);
+
+                        Notification::make()
+                            ->title('Panel archivado')
+                            ->body("PIV #{$record->piv_id} ya no aparece en el listing por defecto.")
+                            ->success()
+                            ->send();
+                    }),
+                Tables\Actions\Action::make('unarchive')
+                    ->label('Restaurar')
+                    ->icon('heroicon-o-arrow-uturn-up')
+                    ->iconButton()
+                    ->color('success')
+                    ->visible(fn (Piv $record) => $record->isArchived())
+                    ->requiresConfirmation()
+                    ->modalHeading('Restaurar panel')
+                    ->modalDescription('Volverá a aparecer en el listing por defecto.')
+                    ->action(function (Piv $record) {
+                        LvPivArchived::where('piv_id', $record->piv_id)->delete();
+
+                        Notification::make()
+                            ->title('Panel restaurado')
+                            ->body("PIV #{$record->piv_id} vuelve a estar activo.")
+                            ->success()
+                            ->send();
+                    }),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkAction::make('archiveSelected')
+                    ->label('Archivar seleccionados')
+                    ->icon('heroicon-o-archive-box-arrow-down')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Archivar paneles seleccionados')
+                    ->form([
+                        Forms\Components\Textarea::make('reason')
+                            ->label('Razón')
+                            ->placeholder('Ej.: bus rows from legacy vehicle project')
+                            ->required()
+                            ->rows(2)
+                            ->maxLength(255),
+                    ])
+                    ->action(function ($records, array $data) {
+                        $count = 0;
+                        foreach ($records as $piv) {
+                            if (! $piv->isArchived()) {
+                                LvPivArchived::create([
+                                    'piv_id' => $piv->piv_id,
+                                    'archived_at' => now(),
+                                    'archived_by_user_id' => auth()->id(),
+                                    'reason' => $data['reason'],
+                                ]);
+                                $count++;
+                            }
+                        }
+
+                        Notification::make()
+                            ->title("{$count} paneles archivados")
+                            ->success()
+                            ->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
             ]);
     }
 
