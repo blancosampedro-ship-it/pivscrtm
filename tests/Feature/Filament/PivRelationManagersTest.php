@@ -20,27 +20,30 @@ beforeEach(function () {
     $this->actingAs($this->admin);
 });
 
-it('piv_view_page_renders_with_relation_manager_tabs', function () {
+it('piv_view_page_renders_with_averias_partial', function () {
     $municipio = Modulo::factory()->municipio('Madrid')->create();
     $piv = Piv::factory()->create(['piv_id' => 88800, 'municipio' => (string) $municipio->modulo_id]);
 
     Livewire::test(ViewPiv::class, ['record' => $piv->piv_id])
-        ->assertSuccessful();
+        ->assertSuccessful()
+        ->assertSee('Histórico de averías');
 });
 
-it('averias_relation_manager_shows_only_this_pivs_averias', function () {
+it('averias_partial_shows_only_this_pivs_averias', function () {
     $piv1 = Piv::factory()->create(['piv_id' => 88810]);
     $piv2 = Piv::factory()->create(['piv_id' => 88811]);
     Averia::factory()->create(['averia_id' => 88810, 'piv_id' => 88810]);
     Averia::factory()->create(['averia_id' => 88811, 'piv_id' => 88811]);
 
-    // Verifica via la relación Eloquent que el filtrado parent-child es correcto.
+    // La relación Eloquent filtra por piv_id (defensa en profundidad).
     expect($piv1->averias()->pluck('averia_id')->all())->toBe([88810]);
     expect($piv2->averias()->pluck('averia_id')->all())->toBe([88811]);
 
-    // Verifica que la View page renderiza con los RelationManager tabs activos.
+    // El partial server-rendered muestra solo las del panel actual.
     Livewire::test(ViewPiv::class, ['record' => $piv1->piv_id])
-        ->assertSuccessful();
+        ->assertSuccessful()
+        ->assertSee('#88810')
+        ->assertDontSee('#88811');
 });
 
 it('asignacion_resource_not_in_admin_sidebar_navigation', function () {
