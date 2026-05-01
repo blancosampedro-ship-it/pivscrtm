@@ -1,0 +1,120 @@
+# bus-archive-candidates (auto-detected by heuristic)
+# generated: 2026-05-01T09:27:09+00:00
+# heuristic: parada_cod no-numeric + direccion empty + municipio empty/0
+# total candidates: 115
+# format: piv_id<TAB>parada_cod
+117	Dársena 44
+118	Dársena 45
+142	18853B(2)
+289	HOSP. GETAFE
+290	HOSP. TORREJÃ“N DE ARDOZ
+291	HOSP. ALCALÃ DE HENARES
+292	HOSP. VALDEMORO
+294	HOSP. COLLADO VILLALBA
+295	HOSP. GUADARRAMA
+298	HOSP.REY JC MOSTOLES P1
+299	HOSP.REY JC MOSTOLES P2
+300	HOSP. ARANJUEZ
+301	HOSP. FUENLABRADA
+302	HOSP. LEGANES
+348	TFT. EstaciÃ³n de Autobuses Principe de Asturias
+354	TFT EstaciÃ³n de Autobuses El Escorial
+355	Bus 7881
+356	Bus 2509
+452	Leganes1
+453	leganes1A
+462	9657-47
+463	9657-48
+464	20397-171
+465	20397-172
+469	Soler i Sauret 103
+470	Soler i Sauret 108
+471	Soler i Sauret 111
+472	Soler i Sauret 112
+473	Soler i Sauret 113
+474	Soler i Sauret 114
+475	Soler i Sauret 115
+476	Soler i Sauret 117
+477	Soler i Sauret 118
+478	Soler i Sauret 119
+479	Sarbus 720
+480	Sarbus 1412
+481	Sarbus 2053
+482	Sarbus 2054
+483	Sarbus 2055
+484	Sarbus 2072
+485	Sarbus 2074
+486	Sarbus 2080
+487	Sarbus 2081
+488	Sarbus 2082
+489	Monbus 1
+490	Monbus 2
+491	Monbus 2386
+492	Monbus 2388
+493	Monbus 2526
+494	Monbus 2780
+495	Monbus 3164
+496	Monbus 3166
+497	Monbus 3168
+498	Monbus 3
+499	Autos Castellbisbal 49
+500	Autos Castellbisbal 62
+501	Autos Castellbisbal 63
+502	Autos Castellbisbal 65
+503	Autos Castellbisbal 65
+504	Autos Castellbisbal 67
+505	Autos Castellbisbal 68
+506	Autos Castellbisbal 73
+507	Autos Castellbisbal 101
+508	Autos Castellbisbal 102
+509	Autos Castellbisbal 103
+510	Font 34
+511	Font 35
+512	Font 36
+513	Font 43
+514	Font 44
+515	Font 45
+516	Font 63
+517	Font 73
+518	Font 89
+519	Font 90
+520	Autocorb 15
+521	Autocorb 16
+522	Autocorb 19
+523	Autocorb 21
+524	Autocorb 22
+525	Autocorb 23
+526	Autocorb 25
+527	Autocorb 25
+528	Autocorb 26
+529	Autocorb 27
+530	Mohn 1192
+531	Mohn 1193
+532	Mohn 1196
+533	Mohn 1202
+534	Mohn 1203
+535	Mohn 1205
+536	Mohn 1208
+537	Mohn 1213
+538	Mohn 1214
+539	Mohn 1215
+540	Rosanbus 3047
+541	Rosanbus 3049
+542	Rosanbus 3060
+543	Rosanbus 3061
+544	Rosanbus 3062
+545	Rosanbus 3063
+546	Rosanbus 3064
+547	Rosanbus 3065
+548	Rosanbus 3066
+549	Rosanbus 3067
+550	Tusgsal 311
+551	Tusgsal 348
+552	Tusgsal 342
+553	Tusgsal 363
+554	Tusgsal 365
+555	Tusgsal 366
+556	Tusgsal 367
+557	Tusgsal 375
+558	Tusgsal 375
+559	Tusgsal 377
