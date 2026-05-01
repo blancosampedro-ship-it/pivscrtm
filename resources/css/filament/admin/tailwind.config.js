@@ -10,10 +10,10 @@ export default {
     ],
     theme: {
         extend: {
-            // Fuentes DESIGN.md — alineadas al tailwind.config.js raíz pero
-            // reaplicadas aquí porque Filament theme tiene su propio config.
+            // Fuentes DESIGN.md — alineadas al tailwind.config.js raíz (Pivot 07d).
             fontFamily: {
-                sans:  ['"General Sans"', "ui-sans-serif", "system-ui", "sans-serif"],
+                sans:  ['"IBM Plex Sans"', "ui-sans-serif", "system-ui", "sans-serif"],
+                mono:  ['"IBM Plex Mono"', "ui-monospace", '"SF Mono"', "monospace"],
                 serif: ['"Instrument Serif"', "ui-serif", "Georgia", "serif"],
             },
         },
