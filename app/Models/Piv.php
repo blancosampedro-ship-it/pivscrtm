@@ -72,6 +72,20 @@ class Piv extends Model
         return $this->belongsTo(Modulo::class, 'industria_id', 'modulo_id');
     }
 
+    /**
+     * Relación lógica a `modulo` con tipo=5 (municipios). Ver ADR-0007.
+     *
+     * `piv.municipio` es varchar pero almacena `modulo_id` numérico como string.
+     * El centinela `"0"` significa "sin municipio asignado" — devuelve null
+     * porque modulo_id=0 no existe en la tabla.
+     *
+     * El nombre `municipioModulo` evita colisión con la columna `municipio`.
+     */
+    public function municipioModulo(): BelongsTo
+    {
+        return $this->belongsTo(Modulo::class, 'municipio', 'modulo_id');
+    }
+
     public function averias(): HasMany
     {
         return $this->hasMany(Averia::class, 'piv_id', 'piv_id');
