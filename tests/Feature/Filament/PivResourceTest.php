@@ -125,3 +125,45 @@ it('municipio_validation_rejects_modulo_with_wrong_tipo', function () {
 
     expect(Piv::find(99004))->toBeNull();
 });
+
+// ---------- Bloque 07d (SaaS pivot) ----------
+
+it('pivs_list_shows_thumbnail_when_imagenes_present', function () {
+    $municipio = Modulo::factory()->municipio('Madrid')->create();
+    $piv = Piv::factory()->create([
+        'piv_id' => 99100,
+        'municipio' => (string) $municipio->modulo_id,
+    ]);
+    DB::table('piv_imagen')->insert([
+        'piv_id' => 99100,
+        'url' => '99100-test.jpg',
+        'posicion' => 1,
+    ]);
+
+    $piv->refresh();
+    expect($piv->thumbnail_url)->toBe('https://www.winfin.es/images/piv/99100-test.jpg');
+});
+
+it('piv_thumbnail_url_returns_null_without_imagenes', function () {
+    $municipio = Modulo::factory()->municipio('Madrid')->create();
+    $piv = Piv::factory()->create([
+        'piv_id' => 99101,
+        'municipio' => (string) $municipio->modulo_id,
+    ]);
+
+    expect($piv->thumbnail_url)->toBeNull();
+});
+
+it('pivs_list_view_action_renders_infolist_with_imagenes', function () {
+    $municipio = Modulo::factory()->municipio('Móstoles')->create();
+    $piv = Piv::factory()->create([
+        'piv_id' => 99102,
+        'parada_cod' => '06036',
+        'direccion' => 'av. Juan Carlos I, 22',
+        'municipio' => (string) $municipio->modulo_id,
+    ]);
+
+    Livewire::test(ListPivs::class)
+        ->callTableAction('view', $piv->piv_id)
+        ->assertSuccessful();
+});
