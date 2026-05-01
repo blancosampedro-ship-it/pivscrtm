@@ -49,10 +49,11 @@ export default {
         error:   { DEFAULT: "#B91C1C", soft: "#FBE6E6" },
       },
       fontFamily: {
-        // Editorial serif para titulares y KPIs grandes
+        // Pivot 2026-05-01 (DESIGN.md §3): IBM Plex Sans + Plex Mono;
+        // Instrument Serif residual solo para wordmark (.brand em).
+        sans:  ['"IBM Plex Sans"', "ui-sans-serif", "system-ui", "sans-serif"],
+        mono:  ['"IBM Plex Mono"', "ui-monospace", '"SF Mono"', "monospace"],
         serif: ['"Instrument Serif"', "ui-serif", "Georgia", "serif"],
-        // Humanist sans para body, UI, tablas, formularios
-        sans:  ['"General Sans"', "ui-sans-serif", "system-ui", "sans-serif"],
       },
       borderRadius: {
         sm:  "4px",
@@ -61,17 +62,18 @@ export default {
         lg:  "8px",
         xl:  "12px",
       },
-      // Modular scale 1.250
+      // Modular scale 1.200 (Pivot 2026-05-01 — densidad SaaS)
       fontSize: {
-        xs:   "12px",
-        sm:   "14px",
-        base: "16px",
-        lg:   "20px",
-        xl:   "25px",
-        "2xl": "31px",
-        "3xl": "39px",
-        "4xl": "49px",
-        "5xl": "61px",
+        "2xs": "10px",
+        xs:    "11px",
+        sm:    "12px",
+        base:  "13px",
+        md:    "14px",
+        lg:    "15px",
+        xl:    "18px",
+        "2xl": "22px",
+        "3xl": "26px",
+        "4xl": "32px",
       },
       transitionDuration: {
         micro: "150ms",

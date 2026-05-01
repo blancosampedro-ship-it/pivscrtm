@@ -1,55 +1,90 @@
 /* Filament admin theme — Winfin PIV (DESIGN.md §9 Aplicación al stack/Filament).
- *
- * Hereda los presets oficiales de Filament + reaplica los tokens DESIGN.md
- * (cobalto, Instrument Serif + General Sans, fondo cálido FAFAF7).
+ * Pivot Bloque 07d (1 may 2026): IBM Plex Sans + Plex Mono. Cero serif en chrome
+ * salvo el wordmark. Ver DESIGN.md §3 Typography y §11 Decisions Log entrada
+ * 2026-05-01 "Pivot Modern SaaS".
  */
 
 @import "../../../../vendor/filament/filament/resources/css/theme.css";
 
-/* Fuentes vía Bunny Fonts (mirror RGPD-friendly).
- * Justificación: tribunales europeos contra fonts.googleapis.com.
- */
+@import url("https://fonts.bunny.net/css?family=ibm-plex-sans:400,500,600,700&display=swap");
+@import url("https://fonts.bunny.net/css?family=ibm-plex-mono:400,500,600&display=swap");
 @import url("https://fonts.bunny.net/css?family=instrument-serif:400,400i&display=swap");
-@import url("https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap");
 
 @config 'tailwind.config.js';
 
-/* ---- Aplicación de los tokens DESIGN.md sobre el shell de Filament ----
- *
- * Filament define sus propios CSS variables (--primary-*, etc) — el preset
- * `colors(['primary' => Color::hex('#1D3F8C')])` del PanelProvider las regenera
- * a partir del cobalto. Aquí sobreescribimos solo las decisiones tipográficas
- * y de fondo que NO se cubren con `colors()`.
- */
-
 :root {
-    --fi-font-family: '"General Sans"', "ui-sans-serif", "system-ui", sans-serif;
-    --fi-display-font-family: '"Instrument Serif"', "ui-serif", "Georgia", serif;
+    --fi-font-family: '"IBM Plex Sans"', "ui-sans-serif", "system-ui", sans-serif;
+    --fi-mono-font-family: '"IBM Plex Mono"', "ui-monospace", monospace;
 }
 
 body.fi-body {
     font-family: var(--fi-font-family);
     background-color: #FAFAF7;
     color: #0F1115;
-    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    font-feature-settings: "ss01";
+    -webkit-font-smoothing: antialiased;
 }
 
-/* Titulares de página en Instrument Serif (DESIGN.md §3) */
+/* Page headings — Plex Sans semibold (NO serif) */
 .fi-header-heading,
 .fi-section-header-heading,
 .fi-page-heading {
-    font-family: var(--fi-display-font-family);
-    font-weight: 400;
-    letter-spacing: -0.01em;
+    font-family: var(--fi-font-family);
+    font-weight: 600;
+    letter-spacing: -0.005em;
 }
 
-/* Cards con border-radius 8px (DESIGN.md §6 Border radius) */
+/* Cards 6px (más técnico, menos editorial que el 8px previo) */
 .fi-section,
 .fi-card {
-    border-radius: 8px;
+    border-radius: 6px;
 }
 
-/* Status pills con padding compacto (DESIGN.md §10.3) */
+/* Status pills */
 .fi-badge {
     border-radius: 9999px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-size: 10px;
+}
+
+/* Tabular nums en columnas mono y badges */
+.fi-ta-text-item-mono,
+[data-mono],
+.fi-badge {
+    font-family: var(--fi-mono-font-family);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Tabla densa estilo Airtable */
+.fi-ta-table {
+    font-size: 12px;
+}
+
+.fi-ta-row {
+    height: 40px;
+}
+
+.fi-ta-header-cell {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+/* Group headers (status grouping) */
+.fi-ta-group-header {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* Wordmark gesture — solo donde aplique clase .brand */
+.brand em {
+    font-family: '"Instrument Serif"', "ui-serif", "Georgia", serif;
+    font-style: italic;
+    font-weight: 400;
 }

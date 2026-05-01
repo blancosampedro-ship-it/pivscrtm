@@ -1,23 +1,39 @@
-/* Fuentes vía Bunny Fonts (mirror RGPD-friendly de Google Fonts).
-   Justificación: tribunales europeos han fallado contra fonts.googleapis.com
-   por enviar IPs a Google. Bunny no traquea. Ver DESIGN.md §3 — Carga de fuentes. */
+/* Bunny Fonts (RGPD-friendly mirror de Google Fonts).
+   Justificación: tribunales europeos contra fonts.googleapis.com.
+   Ver DESIGN.md §3 Typography (Pivot 2026-05-01 Modern SaaS). */
+@import url("https://fonts.bunny.net/css?family=ibm-plex-sans:400,500,600,700&display=swap");
+@import url("https://fonts.bunny.net/css?family=ibm-plex-mono:400,500,600&display=swap");
 @import url("https://fonts.bunny.net/css?family=instrument-serif:400,400i&display=swap");
-@import url("https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+    --display: "Instrument Serif", ui-serif, Georgia, serif;
+  }
+
   html {
-    font-family: theme("fontFamily.sans");
+    font-family: var(--sans);
     background: theme("colors.canvas.base");
     color: theme("colors.ink.DEFAULT");
   }
-  /* Tabular nums activos por defecto en datos */
-  .tabular,
-  .data-cell,
-  [class*="kpi"] {
+
+  /* Tabular nums por defecto en clases de datos */
+  .mono,
+  [class*="kpi"],
+  [data-numeric="true"] {
+    font-family: var(--mono);
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Wordmark "Winfin PIV" — único uso permitido de Instrument Serif */
+  .brand em {
+    font-family: var(--display);
+    font-style: italic;
+    font-weight: 400;
   }
 }
