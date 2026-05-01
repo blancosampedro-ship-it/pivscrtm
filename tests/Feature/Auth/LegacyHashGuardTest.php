@@ -220,3 +220,86 @@ it('email_change_in_legacy_after_first_login_does_not_create_new_lv_user_row', f
     expect(User::where('legacy_kind', 'admin')->where('legacy_id', 300)->count())->toBe(1);
     expect(User::find($idBefore)->email)->toBe('changed@a.a');
 });
+
+// ---------- Tests email fast-path (ADR-0010, Bloque 06b) ----------
+
+it('email_only_in_lv_users_logs_in_via_fast_path', function () {
+    // Caso admin Bloque 05: lv_users.email != legacy.email.
+    seedU1(userId: 400, email: 'legacy-email@a.a', plainPassword: 'irrelevante');
+    User::create([
+        'legacy_kind' => 'admin',
+        'legacy_id' => 400,
+        'email' => 'preferred@b.b',
+        'name' => 'Admin Pref',
+        'password' => Hash::make('bcrypt-pwd'),
+        'legacy_password_sha1' => null,
+        'lv_password_migrated_at' => now(),
+    ]);
+
+    expect(guard()->attempt('preferred@b.b', 'bcrypt-pwd', 'admin', makeRequest()))->toBeTrue();
+    expect(auth()->user()->id)->toBe(User::where('legacy_id', 400)->value('id'));
+});
+
+it('fast_path_only_matches_with_role_hint', function () {
+    // Cross-tabla email collision: lv_users tiene operador con email X;
+    // user intenta login como admin -> fast-path NO matchea (legacy_kind filter)
+    // -> fall-through al legacy lookup (que tampoco encuentra admin con ese email).
+    seedOperador(operadorId: 401, email: 'shared@x.x', plainPassword: 'op-pwd');
+    User::create([
+        'legacy_kind' => 'operador',
+        'legacy_id' => 401,
+        'email' => 'shared@x.x',
+        'name' => 'Operador',
+        'password' => Hash::make('op-pwd'),
+        'legacy_password_sha1' => null,
+        'lv_password_migrated_at' => now(),
+    ]);
+
+    expect(guard()->attempt('shared@x.x', 'op-pwd', 'admin', makeRequest()))->toBeFalse();
+    expect(auth()->check())->toBeFalse();
+
+    expect(guard()->attempt('shared@x.x', 'op-pwd', 'operador', makeRequest()))->toBeTrue();
+});
+
+it('fast_path_with_wrong_password_falls_through_to_legacy_sha1', function () {
+    // Escenario: usuario migró a la nueva app, después volvió a la vieja y cambió
+    // password allí. lv_users tiene bcrypt(OLD), legacy tiene SHA1(NEW).
+    seedU1(userId: 402, email: 'admin402@a.a', plainPassword: 'NEW');
+    User::create([
+        'legacy_kind' => 'admin',
+        'legacy_id' => 402,
+        'email' => 'admin402@a.a',
+        'name' => 'Admin402',
+        'password' => Hash::make('OLD'),
+        'legacy_password_sha1' => null,
+        'lv_password_migrated_at' => now()->subDay(),
+    ]);
+
+    // Login con password NEW. Fast-path: bcrypt(NEW) vs bcrypt(OLD) -> fail.
+    // Fall-through: legacy -> SHA1 OK -> updateOrCreate refresca bcrypt(NEW).
+    expect(guard()->attempt('admin402@a.a', 'NEW', 'admin', makeRequest()))->toBeTrue();
+
+    $u = User::where('legacy_kind', 'admin')->where('legacy_id', 402)->firstOrFail();
+    expect(Hash::check('NEW', $u->password))->toBeTrue('bcrypt actualizado por SHA1 fallback');
+});
+
+it('fast_path_skipped_for_users_without_bcrypt', function () {
+    // lv_users en estado pre-migración (password=null) NO debe matchear el fast-path.
+    seedU1(userId: 403, email: 'admin403@a.a', plainPassword: 'sha-pwd');
+    User::create([
+        'legacy_kind' => 'admin',
+        'legacy_id' => 403,
+        'email' => 'admin403@a.a',
+        'name' => 'Admin403',
+        'password' => null,
+        'legacy_password_sha1' => sha1('sha-pwd'),
+        'lv_password_migrated_at' => null,
+    ]);
+
+    expect(guard()->attempt('admin403@a.a', 'sha-pwd', 'admin', makeRequest()))->toBeTrue();
+
+    $u = User::where('legacy_kind', 'admin')->where('legacy_id', 403)->firstOrFail();
+    expect($u->password)->not->toBeNull();
+    expect(Hash::check('sha-pwd', $u->password))->toBeTrue();
+    expect($u->legacy_password_sha1)->toBeNull('SHA1 borrado tras rehash');
+});
