@@ -68,3 +68,22 @@ Escritura desde formulario admin:
 
 **Negativas:**
 - Si en algún momento aparecieran filas correctamente almacenadas single-byte latin1 (ej. byte `e1` para `á` en lugar de `c3 a1`), el flip las rompería al leer. Hasta ahora no se ha encontrado ninguna en los datasets explorados. Si aparece, se gestiona caso por caso y/o se acelera el refactor a dos conexiones.
+
+---
+
+## Postscript — Refinement Bloque 07c (1 may 2026, mismo día)
+
+Smoke real post-merge reveló que el flip simétrico (Bloque 07b) resolvía la mayoría de mojibake pero rompía el caso `Ú` (y por extensión cualquier carácter cuya forma cp1252 caiga en `0x80-0x9F`, rango undefined en ISO-8859-1).
+
+Datos reales:
+
+| Columna | Raw bytes | ISO-8859-1 fix | WINDOWS-1252 fix |
+|---|---|---|---|
+| `modulo.nombre` (Alcalá) | `c3 83 c2 a1` | `Alcalá` ✓ | `Alcalá` ✓ |
+| `piv.direccion` (URSULA) | `c3 83 c5 a1` | `�?RSULA` ✗ | `ÚRSULA` ✓ |
+
+Causa: MySQL trata `charset=latin1` internamente como Windows-1252 (extiende ISO-8859-1 rellenando `0x80-0x9F`). Cuando una `Ú` original (utf8 `c3 9a`) se almacenó como 2 chars latin1, MySQL transcodifica byte `9a` → `š` (`U+0161`) → utf8 `c5 a1`. ISO-8859-1 no contiene `š` y `mb_convert_encoding` substituye por `?`. Windows-1252 sí, así que reverse correcta.
+
+**Decisión refinada**: sustituir `ISO-8859-1` por `WINDOWS-1252` en ambas direcciones del cast. Los caracteres del castellano básico (á, é, í, ó, ú, ñ, etc.) producen los mismos bytes en ambas encodings, así que ningún test roundtrip rompe. Solo cambia el comportamiento para caracteres en `0x80-0x9F` que ahora se mapean correctamente.
+
+**Bloque relacionado**: `docs/prompts/07c-cast-cp1252.md`.
