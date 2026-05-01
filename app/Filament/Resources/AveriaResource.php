@@ -22,6 +22,12 @@ class AveriaResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-exclamation-triangle';
 
+    /**
+     * Bloque 08d: averías se consultan desde el panel via RelationManager tabs
+     * (DESIGN.md §10.4). URL accesible para Bloque 10 reportes cross-panel.
+     */
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $modelLabel = 'avería';
 
     protected static ?string $pluralModelLabel = 'averías';
