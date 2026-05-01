@@ -72,6 +72,20 @@ class AveriasRelationManager extends RelationManager
                         2 => 'success',
                         default => 'gray',
                     }),
+                Tables\Columns\TextColumn::make('asignacion_horario')
+                    ->label('Horario')
+                    ->getStateUsing(fn (Averia $record) => $record->asignacion?->hora_inicial && $record->asignacion?->hora_final
+                        ? sprintf('%02d–%02d h', $record->asignacion->hora_inicial, $record->asignacion->hora_final)
+                        : '—')
+                    ->extraAttributes(['data-mono' => true])
+                    ->color('gray')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('asignacion_status')
+                    ->label('Status asig.')
+                    ->getStateUsing(fn (Averia $record) => $record->asignacion?->status ?? '—')
+                    ->badge()
+                    ->extraAttributes(['data-mono' => true])
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('tecnico_nombre')
                     ->label('Técnico')
                     ->getStateUsing(fn (Averia $record) => $record->tecnico?->nombre_completo)
