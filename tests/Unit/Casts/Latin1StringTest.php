@@ -76,3 +76,16 @@ it('preserves pure ASCII strings unchanged', function () {
     expect($stored)->toBe($original);
     expect($read)->toBe($original);
 });
+
+it('handles uppercase U with acute through cp1252 encoding', function () {
+    // Patrón real de prod (Bloque 07c): Ú legacy almacenada como utf8 c3 9a
+    // en columna latin1; MySQL transcodifica a utf8mb4 connection mapeando
+    // byte 9a vía Windows-1252 (-> š U+0161) y entrega 4 bytes c3 83 c5 a1.
+    //
+    // ISO-8859-1 no cubre el byte 9a -> la conversión devolvía replacement char.
+    // Windows-1252 sí -> se obtiene Ú original.
+    $prodBytes = "PZA. SANTA \xc3\x83\xc5\xa1RSULA";
+
+    expect($this->cast->get($this->model, 'col', $prodBytes, []))
+        ->toBe('PZA. SANTA ÚRSULA');
+});
