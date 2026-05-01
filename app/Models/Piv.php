@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Panel PIV físico instalado en marquesina. 575 filas en prod.
@@ -140,5 +141,41 @@ class Piv extends Model
         }
 
         return 'https://www.winfin.es/images/piv/'.$first->url;
+    }
+
+    /**
+     * Archivado del panel (ADR-0012). Si existe fila en `lv_piv_archived`,
+     * el panel está oculto por defecto del listing admin.
+     */
+    public function archive(): HasOne
+    {
+        return $this->hasOne(LvPivArchived::class, 'piv_id', 'piv_id');
+    }
+
+    public function isArchived(): bool
+    {
+        // Si la relación archive está cargada (eager load en PivResource),
+        // evitamos la query exists() — crítico para no romper N+1 en listings.
+        if ($this->relationLoaded('archive')) {
+            return $this->archive !== null;
+        }
+
+        return $this->archive()->exists();
+    }
+
+    /**
+     * Scope: solo paneles NO archivados (default en listing admin).
+     */
+    public function scopeNotArchived(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('archive');
+    }
+
+    /**
+     * Scope: solo paneles archivados (filter "Archivados" en admin).
+     */
+    public function scopeOnlyArchived(Builder $query): Builder
+    {
+        return $query->whereHas('archive');
     }
 }
