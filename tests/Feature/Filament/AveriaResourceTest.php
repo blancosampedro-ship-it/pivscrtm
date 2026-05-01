@@ -63,3 +63,17 @@ it('averia_listing_no_n_plus_one', function () {
     $count = count(DB::getQueryLog());
     expect($count)->toBeLessThanOrEqual(12, "Eager loading roto: {$count} queries");
 });
+
+it('averia_view_action_renders_when_asignacion_is_null', function () {
+    Piv::factory()->create(['piv_id' => 99500]);
+    $averia = Averia::factory()->create([
+        'averia_id' => 99500,
+        'piv_id' => 99500,
+        'tecnico_id' => null,
+    ]);
+    // Importante: NO creamos asignación.
+
+    Livewire::test(ListAverias::class)
+        ->callTableAction('view', $averia->averia_id)
+        ->assertSuccessful();
+});

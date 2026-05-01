@@ -93,3 +93,18 @@ it('asignacion_tipo_filter_separates_correctivo_from_revision', function () {
         ->assertCanSeeTableRecords([$correctivo])
         ->assertCanNotSeeTableRecords([$revision]);
 });
+
+it('asignacion_view_action_renders_when_cierre_is_null', function () {
+    Piv::factory()->create(['piv_id' => 99600]);
+    Averia::factory()->create(['averia_id' => 99600, 'piv_id' => 99600]);
+    $asig = Asignacion::factory()->create([
+        'asignacion_id' => 99600,
+        'averia_id' => 99600,
+        'tipo' => 2,
+        'tecnico_id' => null,
+    ]);
+
+    Livewire::test(ListAsignaciones::class)
+        ->callTableAction('view', $asig->asignacion_id)
+        ->assertSuccessful();
+});
