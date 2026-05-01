@@ -297,6 +297,21 @@ Ver [ADR-0004](docs/decisions/0004-revision-vs-averia-ux.md).
 
 Implementación: pill rounded-full, padding `2px 9px`, dot 6 px del color saturado a la izquierda, fondo `*-soft`, texto del color saturado.
 
+### 10.4 Parent-child IA: averías y asignaciones se consultan desde el panel
+
+Las averías y asignaciones NO viven como entries top-level del menú primario. Pertenecen al panel afectado y se consultan vía RelationManager tabs en la View page del panel:
+
+- `/admin/pivs` → click panel → View page con tabs:
+  1. **Detalles** — infolist con foto + 5 secciones (Bloque 07d).
+  2. **Histórico de averías** — RelationManager tabla densa filtrada al panel.
+  3. **Histórico de asignaciones** — RelationManager con stripe lateral cromático regla #11 (10.1) filtrada al panel.
+
+Justificación: cada avería pertenece a un panel — la trazabilidad operativa exige verlas en contexto del panel, no en abstracto. Reportes cross-panel (filtros agregados por fecha/operador, exports CSV/PDF) viven en Bloque 10 Dashboard como uso secundario.
+
+Implementación: Filament 3 RelationManagers (`PivResource::getRelations()`). AveriaResource y AsignacionResource quedan accesibles por URL pero sin entrada en sidebar (`shouldRegisterNavigation = false`). Bloque 10 reincorporará una entrada "Reportes" para vistas agregadas.
+
+Inspiración: la app vieja `winfin.es/paneles.php?action=edit&id=N#tabs-3` ya usaba tabs en la edit del panel — el patrón parent-child está validado por años de uso operativo.
+
 ---
 
 ## 11. Decisions Log
@@ -308,3 +323,4 @@ Implementación: pill rounded-full, padding `2px 9px`, dot 6 px del color satura
 | 2026-04-29 | Instrument Serif + General Sans como únicas fuentes | Editorial serif para titulares y KPIs (gesto diferenciador frente a la categoría, que usa solo grotesques). Humanist sans para body/UI. Servidas vía Bunny Fonts (RGPD). |
 | 2026-04-29 | Action-cards apiladas con stripe lateral para separar avería/revisión | Implementación visual de la regla #11. Stripe + tinte + icono + subtítulo desambiguador = imposible confundir los dos flujos. |
 | 2026-05-01 | **Pivot a "Modern SaaS — productive precision" (Airtable-Mode).** Reemplazar Instrument Serif + General Sans por IBM Plex Sans + Plex Mono. Mantener Instrument Serif SOLO en wordmark. | Smoke real post-Bloque 07 con datos prod reveló que el serif en chrome lee como prensa cultural, no como herramienta diaria de operaciones. `/design-shotgun` con 3 variantes (Linear / Stripe / Airtable) — usuario eligió Airtable-Mode (variante C) por densidad alta + side panel inspector + group-by + galería multi-imagen. Cobalto y restraint cromático preservados. Variantes guardadas en `~/.gstack/projects/winfin-piv/designs/admin-pivs-list-saas-pivot-20260501/`. |
+| 2026-05-02 | **IA refactorizada a parent-child con RelationManagers**. Averías y asignaciones se consultan desde el panel via tabs (10.4). Top-level entries quitados del sidebar (`shouldRegisterNavigation = false`). | Bloque 08 inicial las puso peer-level con paneles — incorrecto. La app vieja siempre usó tabs (`#tabs-3`); revelado por feedback del usuario tras smoke real. Bloque 08d corrige la arquitectura. Bloque 10 reincorporará una entrada "Reportes" para uso secundario (cross-panel filtros agregados). |
