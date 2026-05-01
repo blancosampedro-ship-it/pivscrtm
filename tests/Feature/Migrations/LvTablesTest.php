@@ -33,3 +33,10 @@ it('lv_correctivo_imagen has columns according to ADR-0006', function () {
         expect(Schema::hasColumn('lv_correctivo_imagen', $col))->toBeTrue();
     }
 });
+
+it('creates lv_piv_archived table with correct columns', function () {
+    expect(Schema::hasTable('lv_piv_archived'))->toBeTrue();
+    foreach (['id', 'piv_id', 'archived_at', 'archived_by_user_id', 'reason', 'created_at', 'updated_at'] as $col) {
+        expect(Schema::hasColumn('lv_piv_archived', $col))->toBeTrue("Falta columna {$col}");
+    }
+});
