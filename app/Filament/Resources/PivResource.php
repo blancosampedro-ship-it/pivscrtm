@@ -217,10 +217,7 @@ class PivResource extends Resource
                     ->preload(),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make()
-                    ->slideOver()
-                    ->modalWidth('2xl')
-                    ->infolist(fn (Infolist $infolist) => self::infolist($infolist)),
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make()
                     ->iconButton(),
                 Tables\Actions\Action::make('archive')
@@ -381,11 +378,20 @@ class PivResource extends Resource
         ]);
     }
 
+    public static function getRelations(): array
+    {
+        return [
+            PivResource\RelationManagers\AveriasRelationManager::class,
+            PivResource\RelationManagers\AsignacionesRelationManager::class,
+        ];
+    }
+
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListPivs::route('/'),
             'create' => Pages\CreatePiv::route('/create'),
+            'view' => Pages\ViewPiv::route('/{record}'),
             'edit' => Pages\EditPiv::route('/{record}/edit'),
         ];
     }
