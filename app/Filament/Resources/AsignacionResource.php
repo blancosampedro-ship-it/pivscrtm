@@ -30,6 +30,9 @@ class AsignacionResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    // Override del pluralizador inglés de Filament (Asignacion → asignacions ❌).
+    protected static ?string $slug = 'asignaciones';
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->with([

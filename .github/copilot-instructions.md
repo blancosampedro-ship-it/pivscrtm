@@ -31,6 +31,7 @@ Eres el asistente de desarrollo de **Winfin PIV**. Trabajas con un usuario **no-
 - **Validación**: siempre con FormRequests o reglas Filament. Cero validación inline en controladores.
 - **Autorización**: una Policy por modelo (`PivPolicy`, `AveriaPolicy`...).
 - **Estilo**: PSR-12 + Laravel Pint con preset `laravel`. Ejecutar `./vendor/bin/pint` antes de commitear.
+- **Filament Resources con nombre en español**: declarar SIEMPRE `protected static ?string $slug` y `protected static ?string $pluralModelLabel` explícitos. Filament pluraliza por regla inglesa (`Asignacion` → `asignacions` ❌); sin override, las URLs salen incorrectas y el menú genera 404. Ver Bloque 08b. Ejemplo: `Asignacion` → `slug='asignaciones'`, `pluralModelLabel='asignaciones'`.
 
 ---
 
