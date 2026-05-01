@@ -113,7 +113,7 @@ class Piv extends Model
 
     /**
      * Scope: paneles donde el operador dado es principal, secundario o terciario.
-     * Útil para Bloque 12 (PWA operador) y Bloque 07 (filtros admin).
+     * Util para Bloque 12 (PWA operador) y Bloque 07 (filtros admin).
      */
     public function scopeForOperador(Builder $q, int $operadorId): Builder
     {
@@ -122,5 +122,23 @@ class Piv extends Model
                 ->orWhere('operador_id_2', $operadorId)
                 ->orWhere('operador_id_3', $operadorId);
         });
+    }
+
+    /**
+     * URL completa de la primera imagen del panel para mostrar como thumbnail.
+     *
+     * Imagenes legacy viven en winfin.es/images/piv/<filename>. Bloque 07d
+     * confirmo que son publicas (no requieren auth). Cuando migremos los
+     * archivos al storage local de Laravel (post-cutover), cambiar el prefijo
+     * a Storage::url().
+     */
+    public function getThumbnailUrlAttribute(): ?string
+    {
+        $first = $this->imagenes->first();
+        if (! $first) {
+            return null;
+        }
+
+        return 'https://www.winfin.es/images/piv/'.$first->url;
     }
 }
