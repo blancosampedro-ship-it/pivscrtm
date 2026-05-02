@@ -39,3 +39,26 @@
     font-weight: 400;
   }
 }
+
+@layer components {
+  /* Touch targets >= 88px para PWA técnico (DESIGN.md §10.2 - guantes/sol). */
+  .tap-target {
+    min-height: 88px;
+    padding: 0 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tap-target-icon {
+    min-height: 56px;
+    min-width: 56px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
