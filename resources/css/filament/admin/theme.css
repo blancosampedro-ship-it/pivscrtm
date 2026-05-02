@@ -88,3 +88,34 @@ body.fi-body {
     font-style: italic;
     font-weight: 400;
 }
+
+/* Sticky right actions column (Bloque 09c — fix UX 09b)
+ * Filament 3 no soporta stickyColumnsCount nativo. Pinneamos la columna de
+ * acciones para que el kebab quede SIEMPRE visible en viewports estrechos
+ * sin requerir scroll horizontal. Patrón Linear/Airtable.
+ * Colores: tokens DESIGN.md §6 (--bg-base / --bg-subtle). */
+.fi-ta-table .fi-ta-actions-header-cell,
+.fi-ta-table .fi-ta-actions-cell {
+    position: sticky;
+    right: 0;
+    z-index: 2;
+    background-color: #FAFAF7;
+}
+
+.fi-ta-table .fi-ta-row:hover .fi-ta-actions-cell {
+    background-color: #F2F2EC;
+}
+
+/* Sombra de overflow — visible solo cuando la tabla excede el viewport */
+.fi-ta-table .fi-ta-actions-header-cell::before,
+.fi-ta-table .fi-ta-actions-cell::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 8px;
+    transform: translateX(-100%);
+    background: linear-gradient(to left, rgba(15, 17, 21, 0.06), transparent);
+    pointer-events: none;
+}
