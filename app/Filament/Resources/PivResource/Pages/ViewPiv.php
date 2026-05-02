@@ -22,6 +22,11 @@ class ViewPiv extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('back')
+                ->label('Volver al listado')
+                ->icon('heroicon-o-arrow-left')
+                ->color('gray')
+                ->url(static::getResource()::getUrl('index')),
             Actions\EditAction::make(),
         ];
     }
