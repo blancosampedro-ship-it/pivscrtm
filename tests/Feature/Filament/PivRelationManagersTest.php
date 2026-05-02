@@ -50,12 +50,13 @@ it('asignacion_resource_is_in_admin_sidebar_navigation', function () {
     expect(AsignacionResource::shouldRegisterNavigation())->toBeTrue();
 });
 
-it('averia_resource_not_in_admin_sidebar_navigation', function () {
-    expect(AveriaResource::shouldRegisterNavigation())->toBeFalse();
+it('averia_resource_is_dual_context_under_reportes_navigation', function () {
+    expect(AveriaResource::shouldRegisterNavigation())->toBeTrue();
+    expect(AveriaResource::getNavigationGroup())->toBe('Reportes');
 });
 
 it('averia_resource_url_still_accessible_directly', function () {
-    // Regression: aunque no esté en sidebar, la URL /admin/averias funciona (Bloque 10 reportes).
+    // Regression: sidebar Reportes y deep-link directo usan el mismo Resource.
     $this->get(AveriaResource::getUrl('index'))->assertOk();
 });
 

@@ -23,16 +23,16 @@ class AveriaResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-exclamation-triangle';
 
     /**
-     * Bloque 08d: averías se consultan desde el panel via RelationManager tabs
-     * (DESIGN.md §10.4). URL accesible para Bloque 10 reportes cross-panel.
+     * Bloque 10: dual-context. Reportes cross-panel en sidebar y consulta
+     * per-panel desde ViewPiv.
      */
-    protected static bool $shouldRegisterNavigation = false;
+    protected static bool $shouldRegisterNavigation = true;
 
     protected static ?string $modelLabel = 'avería';
 
     protected static ?string $pluralModelLabel = 'averías';
 
-    protected static ?string $navigationGroup = 'Operaciones';
+    protected static ?string $navigationGroup = 'Reportes';
 
     protected static ?int $navigationSort = 1;
 
@@ -169,6 +169,11 @@ class AveriaResource extends Resource
                 Tables\Filters\SelectFilter::make('tecnico_id')
                     ->label('Técnico')
                     ->relationship('tecnico', 'nombre_completo')
+                    ->searchable()
+                    ->preload(),
+                Tables\Filters\SelectFilter::make('operador_id')
+                    ->label('Operador')
+                    ->relationship('operador', 'razon_social')
                     ->searchable()
                     ->preload(),
                 Tables\Filters\Filter::make('fecha_range')
