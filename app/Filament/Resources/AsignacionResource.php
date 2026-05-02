@@ -29,22 +29,33 @@ class AsignacionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
 
-    /**
-     * Bloque 08d: asignaciones se consultan desde el panel via RelationManager
-     * tabs (DESIGN.md §10.4). URL accesible para reportes cross-panel.
-     */
-    protected static bool $shouldRegisterNavigation = false;
-
     protected static ?string $modelLabel = 'asignación';
 
     protected static ?string $pluralModelLabel = 'asignaciones';
 
     protected static ?string $navigationGroup = 'Operaciones';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 1;
 
     // Override del pluralizador inglés de Filament (Asignacion → asignacions ❌).
     protected static ?string $slug = 'asignaciones';
+
+    public static function getNavigationBadge(): ?string
+    {
+        $count = static::getModel()::where('status', 1)->count();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Asignaciones abiertas pendientes de cierre';
+    }
 
     public static function getEloquentQuery(): Builder
     {
