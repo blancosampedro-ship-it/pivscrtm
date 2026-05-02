@@ -27,7 +27,7 @@ class TecnicoFactory extends Factory
             'direccion' => $this->faker->streetAddress(),
             'ccc' => $this->faker->numerify('############'),
             'n_seguridad_social' => $this->faker->numerify('############'),
-            'telefono' => $this->faker->phoneNumber(),
+            'telefono' => $this->faker->numerify('6########'),
             'status' => 1,
         ];
     }
