@@ -77,6 +77,7 @@ it('asignacion_resource_badge_returns_null_when_no_open', function () {
     expect(AsignacionResource::getNavigationBadge())->toBeNull();
 });
 
-it('averia_resource_remains_hidden_from_sidebar', function () {
-    expect(AveriaResource::shouldRegisterNavigation())->toBeFalse();
+it('averia_resource_is_reportes_dual_context_since_bloque_10', function () {
+    expect(AveriaResource::shouldRegisterNavigation())->toBeTrue();
+    expect(AveriaResource::getNavigationGroup())->toBe('Reportes');
 });
