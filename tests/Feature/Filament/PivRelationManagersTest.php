@@ -46,8 +46,8 @@ it('averias_partial_shows_only_this_pivs_averias', function () {
         ->assertDontSee('#88811');
 });
 
-it('asignacion_resource_not_in_admin_sidebar_navigation', function () {
-    expect(AsignacionResource::shouldRegisterNavigation())->toBeFalse();
+it('asignacion_resource_is_in_admin_sidebar_navigation', function () {
+    expect(AsignacionResource::shouldRegisterNavigation())->toBeTrue();
 });
 
 it('averia_resource_not_in_admin_sidebar_navigation', function () {
