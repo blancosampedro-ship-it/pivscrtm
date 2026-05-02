@@ -1,66 +1,102 @@
-/* Filament admin theme — Winfin PIV (DESIGN.md §9 Aplicación al stack/Filament).
- * Pivot Bloque 07d (1 may 2026): IBM Plex Sans + Plex Mono. Cero serif en chrome
- * salvo el wordmark. Ver DESIGN.md §3 Typography y §11 Decisions Log entrada
- * 2026-05-01 "Pivot Modern SaaS".
- */
+/* Filament admin theme — Winfin PIV
+ * Pivot 2026-05-02 (DESIGN.md §10.1 IBM Carbon).
+ * Tokens semánticos vía CSS custom properties. Profundidad por capas de color,
+ * 0px border-radius en buttons/inputs/cards, inputs bottom-border-only,
+ * sticky actions column, type scale Carbon Productive.
+ * Wordmark "Winfin PIV" conserva Instrument Serif italic en .brand em (excepción única). */
 
 @import "../../../../vendor/filament/filament/resources/css/theme.css";
 
-@import url("https://fonts.bunny.net/css?family=ibm-plex-sans:400,500,600,700&display=swap");
+@import url("https://fonts.bunny.net/css?family=ibm-plex-sans:300,400,600&display=swap");
 @import url("https://fonts.bunny.net/css?family=ibm-plex-mono:400,500,600&display=swap");
-@import url("https://fonts.bunny.net/css?family=instrument-serif:400,400i&display=swap");
+@import url("https://fonts.bunny.net/css?family=instrument-serif:400i&display=swap");
 
 @config 'tailwind.config.js';
 
+/* ---- Carbon tokens (mapeo 1:1 con DESIGN.md §4) ---- */
 :root {
-    --fi-font-family: '"IBM Plex Sans"', "ui-sans-serif", "system-ui", sans-serif;
-    --fi-mono-font-family: '"IBM Plex Mono"', "ui-monospace", monospace;
+    /* Surfaces */
+    --winfin-bg-base:        #FFFFFF;  /* layer 0 */
+    --winfin-bg-layer-01:    #F4F4F4;  /* Gray 10 — cards, hover de filas */
+    --winfin-bg-layer-02:    #E0E0E0;  /* Gray 20 — elevated */
+    --winfin-bg-field:       #F4F4F4;  /* inputs */
+    --winfin-bg-hover:       #E8E8E8;  /* hover layer-01 */
+    /* Text */
+    --winfin-text-primary:     #161616; /* Gray 100 */
+    --winfin-text-secondary:   #525252; /* Gray 70 */
+    --winfin-text-placeholder: #6F6F6F; /* Gray 60 */
+    --winfin-text-disabled:    #8D8D8D; /* Gray 50 */
+    /* Borders */
+    --winfin-border-subtle: #C6C6C6;  /* Gray 30 */
+    --winfin-border-strong: #8D8D8D;
+    /* Accent */
+    --winfin-accent:        #0F62FE;  /* Blue 60 */
+    --winfin-accent-hover:  #0353E9;
+    --winfin-accent-active: #002D9C;
+    --winfin-accent-soft:   #EDF5FF;  /* Blue 10 */
+    /* Status */
+    --winfin-error:        #DA1E28;
+    --winfin-error-soft:   #FFF1F1;
+    --winfin-success:      #24A148;
+    --winfin-success-soft: #DEFBE6;
+    --winfin-warning:      #F1C21B;
+    --winfin-warning-soft: #FCF4D6;
+    /* Filament overrides */
+    --fi-font-family:      '"IBM Plex Sans"', "Helvetica Neue", Arial, sans-serif;
+    --fi-mono-font-family: '"IBM Plex Mono"', Menlo, Courier, monospace;
 }
 
+/* ---- Body & globals ---- */
 body.fi-body {
     font-family: var(--fi-font-family);
-    background-color: #FAFAF7;
-    color: #0F1115;
-    font-size: 13px;
-    font-feature-settings: "ss01";
+    background-color: var(--winfin-bg-base);
+    color: var(--winfin-text-primary);
+    font-size: 14px;
+    letter-spacing: 0.16px; /* Carbon micro-tracking en 14px body */
     -webkit-font-smoothing: antialiased;
 }
 
-/* Page headings — Plex Sans semibold (NO serif) */
+/* Page headings — Carbon Productive scale */
 .fi-header-heading,
-.fi-section-header-heading,
 .fi-page-heading {
     font-family: var(--fi-font-family);
-    font-weight: 600;
-    letter-spacing: -0.005em;
+    font-weight: 400;          /* Heading 03 = 24px Regular */
+    font-size: 24px;
+    line-height: 1.33;
+    letter-spacing: 0;
 }
 
-/* Cards 6px (más técnico, menos editorial que el 8px previo) */
+.fi-section-header-heading {
+    font-family: var(--fi-font-family);
+    font-weight: 600;          /* Heading 04 = 20px Semibold */
+    font-size: 20px;
+    line-height: 1.40;
+}
+
+/* ---- Cards — flat, 0px radius ---- */
 .fi-section,
 .fi-card {
-    border-radius: 6px;
+    border-radius: 0;
+    background-color: var(--winfin-bg-base);
+    box-shadow: none;
 }
 
-/* Status pills */
+/* ---- Status pills — 24px (excepción Carbon) ---- */
 .fi-badge {
-    border-radius: 9999px;
-    font-weight: 500;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    font-size: 10px;
-}
-
-/* Tabular nums en columnas mono y badges */
-.fi-ta-text-item-mono,
-[data-mono],
-.fi-badge {
+    border-radius: 24px;
+    font-weight: 400;
     font-family: var(--fi-mono-font-family);
     font-variant-numeric: tabular-nums;
+    letter-spacing: 0.32px;
+    font-size: 12px;
+    text-transform: none;       /* Carbon NO uppercase en badges */
+    padding: 4px 8px;
 }
 
-/* Tabla densa estilo Airtable */
+/* ---- Tabla — Carbon DataTable density ---- */
 .fi-ta-table {
-    font-size: 12px;
+    font-size: 14px;
+    letter-spacing: 0.16px;
 }
 
 .fi-ta-row {
@@ -68,23 +104,141 @@ body.fi-body {
 }
 
 .fi-ta-header-cell {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    letter-spacing: 0.32px;
+    text-transform: none;       /* Carbon: header sin uppercase */
+    color: var(--winfin-text-secondary);
 }
 
-/* Group headers (status grouping) */
 .fi-ta-group-header {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    letter-spacing: 0.32px;
+    text-transform: uppercase;  /* group headers SÍ small-caps por densidad */
+    color: var(--winfin-text-secondary);
+    background-color: var(--winfin-bg-layer-01);
 }
 
-/* Wordmark gesture — solo donde aplique clase .brand */
+/* Tabular nums para columnas mono y badges */
+.fi-ta-text-item-mono,
+[data-mono] {
+    font-family: var(--fi-mono-font-family);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---- Sticky actions column (folded de Bloque 09c PR #22 cerrado) ---- */
+.fi-ta-table .fi-ta-actions-header-cell,
+.fi-ta-table .fi-ta-actions-cell {
+    position: sticky;
+    right: 0;
+    z-index: 2;
+    background-color: var(--winfin-bg-base);
+}
+
+.fi-ta-table .fi-ta-row:hover .fi-ta-actions-cell {
+    background-color: var(--winfin-bg-layer-01);
+}
+
+.fi-ta-table .fi-ta-actions-header-cell::before,
+.fi-ta-table .fi-ta-actions-cell::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 8px;
+    transform: translateX(-100%);
+    background: linear-gradient(to left, rgba(15, 17, 21, 0.06), transparent);
+    pointer-events: none;
+}
+
+/* ---- Inputs — bottom-border-only (firma Carbon) ---- */
+.fi-input,
+.fi-select-input,
+.fi-textarea,
+.fi-fo-text-input,
+.fi-fo-textarea,
+.fi-fo-select {
+    border-radius: 0;
+    background-color: var(--winfin-bg-field);
+    border: none;
+    border-bottom: 2px solid transparent;
+    transition: border-color 110ms cubic-bezier(0.2, 0, 0.38, 0.9);
+}
+
+.fi-input:focus,
+.fi-select-input:focus,
+.fi-textarea:focus,
+.fi-fo-text-input:focus-within,
+.fi-fo-textarea:focus-within,
+.fi-fo-select:focus-within {
+    border-bottom-color: var(--winfin-accent);
+    outline: none;
+    box-shadow: none;
+}
+
+.fi-fo-field-wrp-error .fi-input,
+.fi-fo-field-wrp-error .fi-select-input,
+.fi-fo-field-wrp-error .fi-textarea {
+    border-bottom-color: var(--winfin-error);
+}
+
+/* Labels Carbon */
+.fi-fo-field-wrp-label,
+.fi-fo-field-label {
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.32px;
+    color: var(--winfin-text-secondary);
+}
+
+/* ---- Buttons Carbon — 0px radius, Blue 60 primary ---- */
+.fi-btn {
+    border-radius: 0;
+    font-weight: 400;
+    font-size: 14px;
+    letter-spacing: 0.16px;
+    transition: background-color 110ms cubic-bezier(0.2, 0, 0.38, 0.9);
+}
+
+.fi-btn-color-primary {
+    background-color: var(--winfin-accent);
+    color: var(--winfin-bg-base);
+}
+
+.fi-btn-color-primary:hover {
+    background-color: var(--winfin-accent-hover);
+}
+
+.fi-btn-color-primary:active {
+    background-color: var(--winfin-accent-active);
+}
+
+/* ---- Wordmark "Winfin PIV" — excepción documentada (DESIGN.md §3) ---- */
 .brand em {
     font-family: '"Instrument Serif"', "ui-serif", "Georgia", serif;
     font-style: italic;
     font-weight: 400;
+}
+
+/* ---- Dark mode (Carbon Gray 100 theme) ---- */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --winfin-bg-base:        #161616;  /* Gray 100 */
+        --winfin-bg-layer-01:    #262626;  /* Gray 90 */
+        --winfin-bg-layer-02:    #393939;  /* Gray 80 */
+        --winfin-bg-field:       #262626;
+        --winfin-bg-hover:       #333333;
+        --winfin-text-primary:     #F4F4F4;
+        --winfin-text-secondary:   #C6C6C6;
+        --winfin-text-placeholder: #6F6F6F;
+        --winfin-text-disabled:    #6F6F6F;
+        --winfin-border-subtle: #393939;
+        --winfin-border-strong: #6F6F6F;
+        --winfin-accent:        #78A9FF;  /* Blue 40 — más legible en dark */
+        --winfin-accent-hover:  #A6C8FF;
+        --winfin-accent-active: #4589FF;
+        --winfin-accent-soft:   #001141;
+    }
 }
