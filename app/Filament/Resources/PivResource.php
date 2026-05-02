@@ -283,8 +283,7 @@ class PivResource extends Resource
                     ->label('Acciones')
                     ->icon('heroicon-m-ellipsis-vertical')
                     ->size('sm')
-                    ->color('gray')
-                    ->button(),
+                    ->color('gray'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkAction::make('archiveSelected')
