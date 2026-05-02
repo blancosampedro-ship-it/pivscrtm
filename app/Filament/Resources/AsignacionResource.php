@@ -7,14 +7,21 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\AsignacionResource\Pages;
 use App\Models\Asignacion;
 use App\Models\Averia;
+use App\Models\Correctivo;
+use App\Models\LvCorrectivoImagen;
+use App\Models\Revision;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class AsignacionResource extends Resource
 {
@@ -199,6 +206,18 @@ class AsignacionResource extends Resource
                     }),
             ])
             ->actions([
+                Tables\Actions\Action::make('cerrar')
+                    ->label('Cerrar asignación')
+                    ->icon('heroicon-o-check-badge')
+                    ->color('primary')
+                    ->visible(fn (Asignacion $record) => (int) $record->status !== 2)
+                    ->slideOver()
+                    ->modalWidth('xl')
+                    ->modalHeading(fn (Asignacion $record) => 'Cerrar '.((int) $record->tipo === Asignacion::TIPO_CORRECTIVO ? 'correctivo' : 'revisión rutinaria').' #'.$record->asignacion_id)
+                    ->form(fn (Asignacion $record) => self::cierreFormSchema($record))
+                    ->action(function (Asignacion $record, array $data): void {
+                        self::handleCierre($record, $data);
+                    }),
                 Tables\Actions\ViewAction::make()
                     ->slideOver()
                     ->modalWidth('2xl')
@@ -292,5 +311,194 @@ class AsignacionResource extends Resource
             'create' => Pages\CreateAsignacion::route('/create'),
             'edit' => Pages\EditAsignacion::route('/{record}/edit'),
         ];
+    }
+
+    private static function cierreFormSchema(Asignacion $record): array
+    {
+        return match ((int) $record->tipo) {
+            Asignacion::TIPO_CORRECTIVO => self::cierreFormCorrectivo(),
+            Asignacion::TIPO_REVISION => self::cierreFormRevision(),
+            default => [
+                Forms\Components\Placeholder::make('warning')
+                    ->label('')
+                    ->content('Asignación con tipo desconocido (tipo='.$record->tipo.'). No se puede cerrar desde aquí.'),
+            ],
+        };
+    }
+
+    private static function cierreFormCorrectivo(): array
+    {
+        return [
+            Forms\Components\Section::make('Cierre correctivo (avería real)')
+                ->description('Tipo=1: el técnico arregló una avería. Schema correctivo según ADR-0006: solo recambios/diagnostico/estado_final/tiempo + facturación. NO existen accion/imagen/fecha/notas en la tabla.')
+                ->columns(2)
+                ->schema([
+                    Forms\Components\Textarea::make('diagnostico')
+                        ->label('Diagnóstico')
+                        ->placeholder('Qué se diagnosticó como problema')
+                        ->maxLength(255)
+                        ->rows(2)
+                        ->required()
+                        ->columnSpanFull(),
+                    Forms\Components\Textarea::make('recambios')
+                        ->label('Acción / Recambios')
+                        ->placeholder('Qué se cambió o reparó')
+                        ->maxLength(255)
+                        ->rows(2)
+                        ->required()
+                        ->columnSpanFull(),
+                    Forms\Components\TextInput::make('estado_final')
+                        ->label('Estado final')
+                        ->placeholder('Ej. OK, Pendiente segunda visita')
+                        ->maxLength(100)
+                        ->default('OK'),
+                    Forms\Components\TextInput::make('tiempo')
+                        ->label('Tiempo (horas decimales)')
+                        ->placeholder('Ej. 0.5, 1.25')
+                        ->maxLength(45),
+                ]),
+
+            Forms\Components\Section::make('Fotos del cierre')
+                ->description('Fotos del panel reparado. Multi-upload, max 10. Se guardan en public/storage/piv-images/correctivo y se vinculan via lv_correctivo_imagen (ADR-0006).')
+                ->schema([
+                    Forms\Components\FileUpload::make('fotos')
+                        ->label('')
+                        ->multiple()
+                        ->maxFiles(10)
+                        ->disk('public')
+                        ->directory('piv-images/correctivo')
+                        ->image()
+                        ->reorderable()
+                        ->openable()
+                        ->downloadable()
+                        ->columnSpanFull(),
+                ]),
+
+            Forms\Components\Section::make('Facturación (admin)')
+                ->description('Flags admin-only. NO se exponen al técnico en su PWA (Bloque 11).')
+                ->columns(4)
+                ->collapsed()
+                ->schema([
+                    Forms\Components\Toggle::make('contrato')->label('Contrato'),
+                    Forms\Components\Toggle::make('facturar_horas')->label('Facturar horas'),
+                    Forms\Components\Toggle::make('facturar_desplazamiento')->label('Facturar desplaz.'),
+                    Forms\Components\Toggle::make('facturar_recambios')->label('Facturar recambios'),
+                ]),
+        ];
+    }
+
+    private static function cierreFormRevision(): array
+    {
+        $okKoNa = ['OK' => 'OK', 'KO' => 'KO', 'N/A' => 'N/A'];
+
+        return [
+            Forms\Components\Section::make('Cierre revisión rutinaria')
+                ->description('Tipo=2: revisión mensual programada. NO es avería real (regla #11). Checklist OK/KO/N/A. Notas opcionales, NUNCA autofilled (bug histórico ADR-0004).')
+                ->columns(2)
+                ->schema([
+                    Forms\Components\DatePicker::make('fecha')->label('Fecha revisión')->default(now()),
+                    Forms\Components\TextInput::make('ruta')->label('Ruta')->maxLength(100),
+                    Forms\Components\TextInput::make('fecha_hora')->label('Verificación fecha/hora panel')->maxLength(100),
+                ]),
+
+            Forms\Components\Section::make('Checklist visual')
+                ->columns(3)
+                ->schema([
+                    Forms\Components\Select::make('aspecto')->options($okKoNa)->default('OK')->required(),
+                    Forms\Components\Select::make('funcionamiento')->options($okKoNa)->default('OK')->required(),
+                    Forms\Components\Select::make('actuacion')->options($okKoNa)->default('OK')->required(),
+                    Forms\Components\Select::make('audio')->options($okKoNa)->default('OK')->required(),
+                    Forms\Components\Select::make('lineas')->options($okKoNa)->default('OK')->required(),
+                    Forms\Components\Select::make('precision_paso')->label('Precisión paso')->options($okKoNa)->default('OK')->required(),
+                ]),
+
+            Forms\Components\Section::make('Notas')
+                ->description('Opcional. SIN default, SIN autofill. ADR-0004 prohibe taxativamente "REVISION MENSUAL" como prefijo automático.')
+                ->schema([
+                    Forms\Components\Textarea::make('notas')
+                        ->label('')
+                        ->placeholder('(opcional, escribe aquí cualquier observación)')
+                        ->maxLength(100)
+                        ->rows(2),
+                ]),
+        ];
+    }
+
+    private static function handleCierre(Asignacion $record, array $data): void
+    {
+        DB::transaction(function () use ($record, $data): void {
+            $record->refresh();
+
+            if ((int) $record->tipo === Asignacion::TIPO_CORRECTIVO && $record->correctivo()->exists()) {
+                throw ValidationException::withMessages([
+                    'cerrar' => 'Esta asignación ya tiene un correctivo registrado.',
+                ]);
+            }
+
+            if ((int) $record->tipo === Asignacion::TIPO_REVISION && $record->revision()->exists()) {
+                throw ValidationException::withMessages([
+                    'cerrar' => 'Esta asignación ya tiene una revisión registrada.',
+                ]);
+            }
+
+            match ((int) $record->tipo) {
+                Asignacion::TIPO_CORRECTIVO => self::handleCierreCorrectivo($record, $data),
+                Asignacion::TIPO_REVISION => self::handleCierreRevision($record, $data),
+                default => throw ValidationException::withMessages([
+                    'cerrar' => 'Asignación con tipo desconocido. No se puede cerrar desde aquí.',
+                ]),
+            };
+
+            // NO tocamos averia.notas: pertenece al operador que reportó la avería.
+            $record->update(['status' => 2]);
+        });
+
+        Notification::make()
+            ->title('Cierre registrado')
+            ->body('Asignación #'.$record->asignacion_id.' marcada como cerrada.')
+            ->success()
+            ->send();
+    }
+
+    private static function handleCierreCorrectivo(Asignacion $record, array $data): void
+    {
+        $correctivo = Correctivo::create([
+            'tecnico_id' => $record->tecnico_id,
+            'asignacion_id' => $record->asignacion_id,
+            'tiempo' => $data['tiempo'] ?? null,
+            'recambios' => $data['recambios'],
+            'diagnostico' => $data['diagnostico'],
+            'estado_final' => $data['estado_final'] ?? 'OK',
+            'contrato' => $data['contrato'] ?? false,
+            'facturar_horas' => $data['facturar_horas'] ?? false,
+            'facturar_desplazamiento' => $data['facturar_desplazamiento'] ?? false,
+            'facturar_recambios' => $data['facturar_recambios'] ?? false,
+        ]);
+
+        foreach (($data['fotos'] ?? []) as $idx => $url) {
+            LvCorrectivoImagen::create([
+                'correctivo_id' => $correctivo->correctivo_id,
+                'url' => (string) $url,
+                'posicion' => $idx + 1,
+            ]);
+        }
+    }
+
+    private static function handleCierreRevision(Asignacion $record, array $data): void
+    {
+        Revision::create([
+            'tecnico_id' => $record->tecnico_id,
+            'asignacion_id' => $record->asignacion_id,
+            'fecha' => filled($data['fecha'] ?? null) ? Carbon::parse($data['fecha'])->format('Y-m-d') : null,
+            'ruta' => $data['ruta'] ?? null,
+            'aspecto' => $data['aspecto'] ?? null,
+            'funcionamiento' => $data['funcionamiento'] ?? null,
+            'actuacion' => $data['actuacion'] ?? null,
+            'audio' => $data['audio'] ?? null,
+            'lineas' => $data['lineas'] ?? null,
+            'fecha_hora' => $data['fecha_hora'] ?? null,
+            'precision_paso' => $data['precision_paso'] ?? null,
+            'notas' => $data['notas'] ?? null,
+        ]);
     }
 }
