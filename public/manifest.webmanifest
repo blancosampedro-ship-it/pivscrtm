@@ -1,0 +1,15 @@
+{
+  "name": "Winfin PIV - Técnico",
+  "short_name": "Winfin PIV",
+  "description": "Gestión de paneles de información al viajero - vista técnico de campo.",
+  "start_url": "/tecnico",
+  "scope": "/tecnico/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0F62FE",
+  "background_color": "#FFFFFF",
+  "lang": "es",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "32x32", "type": "image/x-icon" }
+  ]
+}
