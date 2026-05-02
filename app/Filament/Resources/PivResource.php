@@ -11,6 +11,8 @@ use App\Models\Piv;
 use Closure;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists\Components\Actions\Action as InfolistAction;
+use Filament\Infolists\Components\Actions as InfolistActions;
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\Section as InfolistSection;
 use Filament\Infolists\Components\TextEntry;
@@ -217,58 +219,72 @@ class PivResource extends Resource
                     ->preload(),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make()
-                    ->iconButton(),
-                Tables\Actions\Action::make('archive')
-                    ->label('Archivar')
-                    ->icon('heroicon-o-archive-box-arrow-down')
-                    ->iconButton()
-                    ->color('warning')
-                    ->visible(fn (Piv $record) => ! $record->isArchived())
-                    ->requiresConfirmation()
-                    ->modalHeading('Archivar panel')
-                    ->modalDescription('El panel quedará oculto del listado admin. Reversible.')
-                    ->modalSubmitActionLabel('Archivar')
-                    ->form([
-                        Forms\Components\Textarea::make('reason')
-                            ->label('Razón (opcional)')
-                            ->placeholder('Ej.: bus contaminante de proyecto antiguo')
-                            ->rows(2)
-                            ->maxLength(255),
-                    ])
-                    ->action(function (Piv $record, array $data) {
-                        LvPivArchived::create([
-                            'piv_id' => $record->piv_id,
-                            'archived_at' => now(),
-                            'archived_by_user_id' => auth()->id(),
-                            'reason' => $data['reason'] ?? null,
-                        ]);
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make()
+                        ->label('Vista rápida')
+                        ->icon('heroicon-o-eye')
+                        ->slideOver()
+                        ->modalWidth('2xl')
+                        ->infolist(fn (Infolist $infolist) => self::infolist($infolist)),
+                    Tables\Actions\Action::make('viewFull')
+                        ->label('Ver histórico de averías')
+                        ->icon('heroicon-o-arrow-top-right-on-square')
+                        ->url(fn (Piv $record) => static::getUrl('view', ['record' => $record])),
+                    Tables\Actions\EditAction::make()
+                        ->label('Editar'),
+                    Tables\Actions\Action::make('archive')
+                        ->label('Archivar')
+                        ->icon('heroicon-o-archive-box-arrow-down')
+                        ->color('warning')
+                        ->visible(fn (Piv $record) => ! $record->isArchived())
+                        ->requiresConfirmation()
+                        ->modalHeading('Archivar panel')
+                        ->modalDescription('El panel quedará oculto del listado admin. Reversible.')
+                        ->modalSubmitActionLabel('Archivar')
+                        ->form([
+                            Forms\Components\Textarea::make('reason')
+                                ->label('Razón (opcional)')
+                                ->placeholder('Ej.: bus contaminante de proyecto antiguo')
+                                ->rows(2)
+                                ->maxLength(255),
+                        ])
+                        ->action(function (Piv $record, array $data) {
+                            LvPivArchived::create([
+                                'piv_id' => $record->piv_id,
+                                'archived_at' => now(),
+                                'archived_by_user_id' => auth()->id(),
+                                'reason' => $data['reason'] ?? null,
+                            ]);
 
-                        Notification::make()
-                            ->title('Panel archivado')
-                            ->body("PIV #{$record->piv_id} ya no aparece en el listing por defecto.")
-                            ->success()
-                            ->send();
-                    }),
-                Tables\Actions\Action::make('unarchive')
-                    ->label('Restaurar')
-                    ->icon('heroicon-o-arrow-uturn-up')
-                    ->iconButton()
-                    ->color('success')
-                    ->visible(fn (Piv $record) => $record->isArchived())
-                    ->requiresConfirmation()
-                    ->modalHeading('Restaurar panel')
-                    ->modalDescription('Volverá a aparecer en el listing por defecto.')
-                    ->action(function (Piv $record) {
-                        LvPivArchived::where('piv_id', $record->piv_id)->delete();
+                            Notification::make()
+                                ->title('Panel archivado')
+                                ->body("PIV #{$record->piv_id} ya no aparece en el listing por defecto.")
+                                ->success()
+                                ->send();
+                        }),
+                    Tables\Actions\Action::make('unarchive')
+                        ->label('Restaurar')
+                        ->icon('heroicon-o-arrow-uturn-up')
+                        ->color('success')
+                        ->visible(fn (Piv $record) => $record->isArchived())
+                        ->requiresConfirmation()
+                        ->modalHeading('Restaurar panel')
+                        ->modalDescription('Volverá a aparecer en el listing por defecto.')
+                        ->action(function (Piv $record) {
+                            LvPivArchived::where('piv_id', $record->piv_id)->delete();
 
-                        Notification::make()
-                            ->title('Panel restaurado')
-                            ->body("PIV #{$record->piv_id} vuelve a estar activo.")
-                            ->success()
-                            ->send();
-                    }),
+                            Notification::make()
+                                ->title('Panel restaurado')
+                                ->body("PIV #{$record->piv_id} vuelve a estar activo.")
+                                ->success()
+                                ->send();
+                        }),
+                ])
+                    ->label('Acciones')
+                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->size('sm')
+                    ->color('gray')
+                    ->button(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkAction::make('archiveSelected')
@@ -315,6 +331,14 @@ class PivResource extends Resource
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist->schema([
+            InfolistActions::make([
+                InfolistAction::make('viewFull')
+                    ->label('Ver histórico completo')
+                    ->icon('heroicon-o-arrow-top-right-on-square')
+                    ->url(fn (Piv $record) => static::getUrl('view', ['record' => $record])),
+            ])
+                ->fullWidth(),
+
             InfolistSection::make('Galería')
                 ->schema([
                     ImageEntry::make('imagenes_urls')
