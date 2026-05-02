@@ -31,8 +31,8 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login(Login::class)
             ->colors([
-                // Cobalto Winfin (DESIGN.md §4) — único acento de marca.
-                'primary' => Color::hex('#1D3F8C'),
+                // Carbon Blue 60 — único acento (DESIGN.md §4). Sustituye al cobalto legacy '#1D3F8C'.
+                'primary' => Color::hex('#0F62FE'),
             ])
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
