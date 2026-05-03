@@ -88,6 +88,9 @@ export default {
         "carbon-productive": "cubic-bezier(0.2, 0, 0.38, 0.9)",
         "carbon-expressive": "cubic-bezier(0.4, 0.14, 0.3, 1)",
       },
+      animation: {
+        "pulse-slow": "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+      },
     },
   },
   plugins: [
