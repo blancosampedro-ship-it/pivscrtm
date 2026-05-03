@@ -36,6 +36,12 @@ Thumbs.db
 /public/css/filament
 /public/js/filament
 
+# PWA iconos temporales regenerados por `npx pwa-assets-generator` junto a los
+# SVG fuente. Los iconos servidos desde public/ sí se versionan para que Pest/CI
+# pueda validar endpoints sin ejecutar npm.
+/resources/icons/*.png
+/resources/icons/*.ico
+
 # Notas locales con credenciales operativas (técnico smoke, etc.) referenciadas
 # por placeholders en runbooks/prompts. Nunca commitear.
 /docs/runbooks/.smoke-credentials.local.md
