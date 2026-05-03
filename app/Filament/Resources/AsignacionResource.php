@@ -435,5 +435,4 @@ class AsignacionResource extends Resource
                 ]),
         ];
     }
-
 }

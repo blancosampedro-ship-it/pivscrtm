@@ -110,7 +110,7 @@ final class AsignacionCierreService
 
         return [
             'model' => $revision,
-            'imagenes' => new Collection(),
+            'imagenes' => new Collection,
         ];
     }
 }
