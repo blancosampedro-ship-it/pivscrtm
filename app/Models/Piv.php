@@ -178,7 +178,7 @@ class Piv extends Model
                     ->join('averia', 'asignacion.averia_id', '=', 'averia.averia_id')
                     ->where('averia.piv_id', $this->piv_id);
             })
-            ->orderByDesc('lv_correctivo_imagen_id')
+            ->orderByDesc('id')
             ->first();
 
         if ($latestCierre !== null) {
