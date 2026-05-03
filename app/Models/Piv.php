@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Panel PIV físico instalado en marquesina. 575 filas en prod.
@@ -158,6 +159,33 @@ class Piv extends Model
         }
 
         return 'https://www.winfin.es/images/piv/'.$first->url;
+    }
+
+    /**
+     * URL de la foto actual del panel para la PWA técnico.
+     *
+     * Prioriza la última foto de cierre técnico, que es la evidencia más
+     * fresca del estado del panel. Si no existe, cae a la primera foto legacy
+     * de `piv_imagen`. No escribe en `piv_imagen`; es solo display logic.
+     */
+    public function getCurrentPhotoUrlAttribute(): ?string
+    {
+        $latestCierre = LvCorrectivoImagen::query()
+            ->whereIn('correctivo_id', function ($query): void {
+                $query->select('correctivo.correctivo_id')
+                    ->from('correctivo')
+                    ->join('asignacion', 'correctivo.asignacion_id', '=', 'asignacion.asignacion_id')
+                    ->join('averia', 'asignacion.averia_id', '=', 'averia.averia_id')
+                    ->where('averia.piv_id', $this->piv_id);
+            })
+            ->orderByDesc('lv_correctivo_imagen_id')
+            ->first();
+
+        if ($latestCierre !== null) {
+            return Storage::disk('public')->url($latestCierre->url);
+        }
+
+        return $this->thumbnail_url;
     }
 
     /**
