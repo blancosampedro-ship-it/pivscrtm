@@ -35,3 +35,8 @@ Thumbs.db
 # No deben vivir en git — son output, no source.
 /public/css/filament
 /public/js/filament
+
+# Notas locales con credenciales operativas (técnico smoke, etc.) referenciadas
+# por placeholders en runbooks/prompts. Nunca commitear.
+/docs/runbooks/.smoke-credentials.local.md
+*.local.md
