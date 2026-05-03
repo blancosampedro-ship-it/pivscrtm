@@ -25,6 +25,12 @@ new class extends Component {
 }; ?>
 
 <div class="p-4">
+    @if (session('cierre_ok'))
+        <div class="bg-success-soft text-ink-primary border-l-4 border-success p-3 mb-4 text-sm" role="status">
+            {{ session('cierre_ok') }}
+        </div>
+    @endif
+
     <h1 class="text-lg font-medium mb-4">Mis asignaciones abiertas</h1>
 
     @if ($asignacionesAbiertas->isEmpty())
@@ -43,26 +49,33 @@ new class extends Component {
                         : 'Todo OK. Checklist mensual rutinario.';
                     $piv = $asignacion->averia?->piv;
                 @endphp
-                <li class="bg-layer-0 border-l-4 {{ $stripeColor }} p-4 flex flex-col gap-2 shadow-none" data-asignacion-card>
-                    <div class="text-xs uppercase tracking-wider text-ink-secondary font-medium">
-                        {{ $kicker }}
-                    </div>
-                    <div class="text-md font-medium leading-tight">
-                        @if ($piv)
-                            Panel #{{ str_pad((string) $piv->piv_id, 3, '0', STR_PAD_LEFT) }}
-                            <span class="font-mono text-sm text-ink-secondary ml-1">· {{ $piv->parada_cod }}</span>
-                        @else
-                            <span class="text-ink-secondary">Panel sin asignar</span>
-                        @endif
-                    </div>
-                    @if ($piv)
-                        <div class="text-sm text-ink-secondary leading-snug">
-                            {{ $piv->direccion }}
+                <li data-asignacion-card>
+                    <a href="{{ route('tecnico.asignacion.cierre', $asignacion) }}" class="bg-layer-0 border-l-4 {{ $stripeColor }} p-4 flex gap-3 shadow-none min-h-24 hover:bg-layer-hover focus:bg-layer-hover focus:outline-none focus:ring-2 focus:ring-primary-60">
+                        <div class="flex flex-1 flex-col gap-2">
+                            <div class="text-xs uppercase tracking-wider text-ink-secondary font-medium">
+                                {{ $kicker }}
+                            </div>
+                            <div class="text-md font-medium leading-tight">
+                                @if ($piv)
+                                    Panel #{{ str_pad((string) $piv->piv_id, 3, '0', STR_PAD_LEFT) }}
+                                    <span class="font-mono text-sm text-ink-secondary ml-1">· {{ $piv->parada_cod }}</span>
+                                @else
+                                    <span class="text-ink-secondary">Panel sin asignar</span>
+                                @endif
+                            </div>
+                            @if ($piv)
+                                <div class="text-sm text-ink-secondary leading-snug">
+                                    {{ $piv->direccion }}
+                                </div>
+                            @endif
+                            <div class="text-xs text-ink-secondary mt-1">
+                                {{ $subtitle }}
+                            </div>
                         </div>
-                    @endif
-                    <div class="text-xs text-ink-secondary mt-1">
-                        {{ $subtitle }}
-                    </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5 shrink-0 self-center text-ink-secondary" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
                 </li>
             @endforeach
         </ul>
