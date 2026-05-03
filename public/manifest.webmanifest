@@ -1,7 +1,7 @@
 {
   "name": "Winfin PIV - Técnico",
   "short_name": "Winfin PIV",
-  "description": "Gestión de paneles de información al viajero - vista técnico de campo.",
+  "description": "Gestión de paneles de información al viajero — vista técnico de campo.",
   "start_url": "/tecnico",
   "scope": "/tecnico/",
   "display": "standalone",
@@ -9,7 +9,25 @@
   "theme_color": "#0F62FE",
   "background_color": "#FFFFFF",
   "lang": "es",
+  "id": "/tecnico",
   "icons": [
-    { "src": "/favicon.ico", "sizes": "32x32", "type": "image/x-icon" }
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/maskable-icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }
