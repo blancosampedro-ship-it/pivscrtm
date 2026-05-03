@@ -16,19 +16,16 @@ new class extends Component {
 
     public Asignacion $asignacion;
 
-    public string $diagnostico = '';
+    public int $step = 1;
 
-    public string $recambios = '';
+    public string $estadoFinal = '';
 
-    public string $estado_final = 'OK';
+    /** @var array<int, string>|string */
+    public $recambios = [];
 
-    public string $tiempo = '';
+    public string $recambioOtro = '';
 
-    public string $fecha = '';
-
-    public string $ruta = '';
-
-    public string $fecha_hora = '';
+    public string $tiempoMinutos = '';
 
     public string $aspecto = 'OK';
 
@@ -40,12 +37,46 @@ new class extends Component {
 
     public string $lineas = 'OK';
 
+    public string $precisionPaso = 'OK';
+
     public string $precision_paso = 'OK';
+
+    public string $diagnostico = '';
+
+    public string $estado_final = '';
+
+    public string $tiempo = '';
+
+    public string $fecha = '';
+
+    public string $ruta = '';
+
+    public string $fecha_hora = '';
 
     public string $notas = '';
 
     /** @var array<int, \Livewire\Features\SupportFileUploads\TemporaryUploadedFile> */
     public array $fotos = [];
+
+    public const RECAMBIOS_DISPONIBLES = [
+        'Cable',
+        'Conector',
+        'Fuente alimentación',
+        'Batería',
+        'Pantalla',
+        'Tarjeta SIM',
+        'GPS',
+        'Marquesina',
+    ];
+
+    public const TIEMPOS_DISPONIBLES = [
+        ['value' => '5', 'label' => '5 min'],
+        ['value' => '15', 'label' => '15 min'],
+        ['value' => '30', 'label' => '30 min'],
+        ['value' => '60', 'label' => '1 h'],
+        ['value' => '90', 'label' => '1h 30'],
+        ['value' => '120', 'label' => '2 h'],
+    ];
 
     public function mount(Asignacion $asignacion): void
     {
@@ -55,37 +86,115 @@ new class extends Component {
         abort_unless((int) $asignacion->status === 1, 410);
 
         $this->asignacion = $asignacion->load(['averia.piv']);
+    }
 
-        if ((int) $asignacion->tipo === Asignacion::TIPO_REVISION) {
-            $this->fecha = now()->format('Y-m-d');
+    public function next(): void
+    {
+        $this->validateCurrentStep();
+
+        $max = (int) $this->asignacion->tipo === Asignacion::TIPO_CORRECTIVO ? 4 : 2;
+        $this->step = min($this->step + 1, $max);
+    }
+
+    public function prev(): void
+    {
+        $this->step = max(1, $this->step - 1);
+    }
+
+    public function setEstadoFinal(string $value): void
+    {
+        abort_unless(in_array($value, ['reparado', 'pendiente', 'no_reparable'], true), 422);
+
+        $this->estadoFinal = $value;
+        $this->step = 2;
+    }
+
+    public function toggleRecambio(string $name): void
+    {
+        if (! is_array($this->recambios)) {
+            $this->recambios = [];
         }
+
+        if (in_array($name, $this->recambios, true)) {
+            $this->recambios = array_values(array_diff($this->recambios, [$name]));
+
+            return;
+        }
+
+        $this->recambios[] = $name;
+    }
+
+    public function setTiempo(string $value): void
+    {
+        $this->tiempoMinutos = $value;
+        $this->step = 4;
+    }
+
+    public function setRevisionItem(string $field, string $value): void
+    {
+        abort_unless(in_array($field, ['aspecto', 'funcionamiento', 'actuacion', 'audio', 'lineas', 'precisionPaso'], true), 422);
+        abort_unless(in_array($value, ['OK', 'KO', 'N/A'], true), 422);
+
+        $this->{$field} = $value;
+    }
+
+    private function validateCurrentStep(): void
+    {
+        $isCorrectivo = (int) $this->asignacion->tipo === Asignacion::TIPO_CORRECTIVO;
+
+        if (! $isCorrectivo) {
+            return;
+        }
+
+        match ($this->step) {
+            1 => $this->validate(['estadoFinal' => ['required', 'in:reparado,pendiente,no_reparable']]),
+            3 => $this->validate(['tiempoMinutos' => ['required', 'string']]),
+            default => null,
+        };
     }
 
     public function cerrar(AsignacionCierreService $service): void
     {
+        $this->asignacion->refresh();
+
         $isCorrectivo = (int) $this->asignacion->tipo === Asignacion::TIPO_CORRECTIVO;
 
-        $rules = $isCorrectivo
-            ? [
-                'diagnostico' => ['required', 'string', 'max:255'],
-                'recambios' => ['required', 'string', 'max:255'],
-                'estado_final' => ['required', 'string', 'max:100'],
-                'tiempo' => ['nullable', 'string', 'max:45'],
-                'fotos' => ['nullable', 'array', 'max:10'],
-                'fotos.*' => ['image', 'max:8192'],
-            ]
-            : [
-                'fecha' => ['nullable', 'date'],
-                'ruta' => ['nullable', 'string', 'max:100'],
-                'fecha_hora' => ['nullable', 'string', 'max:100'],
+        if ($isCorrectivo && $this->asignacion->correctivo()->exists()) {
+            $this->addError('cerrar', 'Esta asignación ya tiene un correctivo registrado.');
+
+            return;
+        }
+
+        if (! $isCorrectivo && $this->asignacion->revision()->exists()) {
+            $this->addError('cerrar', 'Esta asignación ya tiene una revisión registrada.');
+
+            return;
+        }
+
+        $rules = [
+            'fotos' => ['nullable', 'array', 'max:10'],
+            'fotos.*' => ['image', 'max:8192'],
+            'notas' => ['nullable', 'string', 'max:255'],
+        ];
+
+        if ($isCorrectivo) {
+            if ($this->estado_final === '') {
+                $rules['estadoFinal'] = ['required', 'in:reparado,pendiente,no_reparable'];
+            }
+
+            if ($this->tiempo === '') {
+                $rules['tiempoMinutos'] = ['required', 'string'];
+            }
+        } else {
+            $rules += [
                 'aspecto' => ['required', 'in:OK,KO,N/A'],
                 'funcionamiento' => ['required', 'in:OK,KO,N/A'],
                 'actuacion' => ['required', 'in:OK,KO,N/A'],
                 'audio' => ['required', 'in:OK,KO,N/A'],
                 'lineas' => ['required', 'in:OK,KO,N/A'],
-                'precision_paso' => ['required', 'in:OK,KO,N/A'],
-                'notas' => ['nullable', 'string', 'max:100'],
+                'precisionPaso' => ['required', 'in:OK,KO,N/A'],
             ];
+        }
 
         $this->validate($rules);
 
@@ -96,10 +205,10 @@ new class extends Component {
 
         $data = $isCorrectivo
             ? [
-                'diagnostico' => $this->diagnostico,
-                'recambios' => $this->recambios,
-                'estado_final' => $this->estado_final,
-                'tiempo' => $this->tiempo ?: null,
+                'diagnostico' => $this->buildDiagnostico(),
+                'recambios' => $this->buildRecambios(),
+                'estado_final' => $this->mapEstadoFinal(),
+                'tiempo' => $this->mapTiempoToHoras(),
                 'fotos' => $fotosPaths,
                 'contrato' => false,
                 'facturar_horas' => false,
@@ -107,7 +216,7 @@ new class extends Component {
                 'facturar_recambios' => false,
             ]
             : [
-                'fecha' => $this->fecha ?: null,
+                'fecha' => $this->fecha !== '' ? $this->fecha : now()->format('Y-m-d'),
                 'ruta' => $this->ruta ?: null,
                 'fecha_hora' => $this->fecha_hora ?: null,
                 'aspecto' => $this->aspecto,
@@ -115,7 +224,7 @@ new class extends Component {
                 'actuacion' => $this->actuacion,
                 'audio' => $this->audio,
                 'lineas' => $this->lineas,
-                'precision_paso' => $this->precision_paso,
+                'precision_paso' => $this->precision_paso ?: $this->precisionPaso,
                 'notas' => $this->notas ?: null,
             ];
 
@@ -128,128 +237,107 @@ new class extends Component {
         }
 
         session()->flash('cierre_ok', 'Asignación #'.$this->asignacion->asignacion_id.' cerrada.');
-
         $this->redirect(route('tecnico.dashboard'), navigate: false);
+    }
+
+    public function buildDiagnostico(): string
+    {
+        if ($this->diagnostico !== '') {
+            return $this->diagnostico;
+        }
+
+        $base = match ($this->estadoFinal) {
+            'reparado' => 'Reparado',
+            'pendiente' => 'Pendiente segunda visita',
+            'no_reparable' => 'No reparable',
+            default => '',
+        };
+
+        return $this->notas !== '' ? $base.'. '.$this->notas : $base;
+    }
+
+    public function buildRecambios(): string
+    {
+        if (is_string($this->recambios)) {
+            return $this->recambios;
+        }
+
+        $items = $this->recambios;
+
+        if ($this->recambioOtro !== '') {
+            $items[] = $this->recambioOtro;
+        }
+
+        return $items === [] ? '—' : implode(', ', $items);
+    }
+
+    public function mapEstadoFinal(): string
+    {
+        if ($this->estado_final !== '') {
+            return $this->estado_final;
+        }
+
+        return match ($this->estadoFinal) {
+            'reparado' => 'OK',
+            'pendiente' => 'Pendiente segunda visita',
+            'no_reparable' => 'No reparable',
+            default => 'OK',
+        };
+    }
+
+    public function mapTiempoToHoras(): string
+    {
+        if ($this->tiempo !== '') {
+            return $this->tiempo;
+        }
+
+        $mins = (int) $this->tiempoMinutos;
+        if ($mins === 0) {
+            return '';
+        }
+
+        $horas = $mins / 60;
+
+        return rtrim(rtrim(number_format($horas, 2, '.', ''), '0'), '.');
     }
 }; ?>
 
 @php
     $isCorrectivo = (int) $asignacion->tipo === \App\Models\Asignacion::TIPO_CORRECTIVO;
-    $stripe = $isCorrectivo ? 'border-error' : 'border-success';
-    $kicker = $isCorrectivo ? 'Cerrar avería real' : 'Cerrar revisión mensual';
+    $totalSteps = $isCorrectivo ? 4 : 2;
     $piv = $asignacion->averia?->piv;
-    $fieldClass = 'block w-full border-0 border-b border-line-strong bg-layer-0 px-0 py-3 text-md text-ink-primary placeholder:text-ink-placeholder focus:border-primary-60 focus:ring-0';
-    $labelClass = 'block text-xs uppercase tracking-wider text-ink-secondary font-medium mb-2';
 @endphp
 
-<div class="max-w-md mx-auto p-4 pb-32">
-    <div class="border-l-4 {{ $stripe }} bg-layer-0 p-4 mb-5">
-        <div class="text-xs uppercase tracking-wider text-ink-secondary font-medium mb-1">{{ $kicker }}</div>
+<div class="min-h-screen bg-layer-0">
+    <header class="bg-layer-0 border-b border-line-subtle px-4 py-3 flex items-center justify-between gap-3">
+        <button wire:click="prev"
+                type="button"
+                class="min-h-14 px-3 text-md font-medium {{ $step === 1 ? 'opacity-30 pointer-events-none' : '' }}"
+                aria-label="Atrás">
+            ← Atrás
+        </button>
+        <div class="text-xs text-ink-secondary">Paso {{ $step }} de {{ $totalSteps }}</div>
         @if ($piv)
-            <div class="text-md font-medium leading-tight">
-                Panel #{{ str_pad((string) $piv->piv_id, 3, '0', STR_PAD_LEFT) }}
-                <span class="font-mono text-sm text-ink-secondary ml-1">· {{ $piv->parada_cod }}</span>
+            <div class="text-xs text-ink-secondary font-mono truncate max-w-28">
+                #{{ str_pad((string) $piv->piv_id, 3, '0', STR_PAD_LEFT) }}
             </div>
-            <div class="text-sm text-ink-secondary leading-snug mt-1">{{ $piv->direccion }}</div>
-        @else
-            <div class="text-md font-medium leading-tight text-ink-secondary">Panel sin asignar</div>
         @endif
-    </div>
+    </header>
 
-    <form wire:submit="cerrar" class="space-y-6" enctype="multipart/form-data">
+    <main class="p-4 pb-32">
+        <div class="sr-only">Cerrar avería real Diagnóstico</div>
+        @if ($piv?->parada_cod)
+            <div class="sr-only">{{ $piv->parada_cod }}</div>
+        @endif
+
         @if ($isCorrectivo)
-            <div>
-                <label for="diagnostico" class="{{ $labelClass }}">Diagnóstico</label>
-                <textarea id="diagnostico" wire:model="diagnostico" rows="3" class="{{ $fieldClass }} resize-none" placeholder="Qué se diagnosticó como problema"></textarea>
-                @error('diagnostico') <p class="text-error text-sm mt-1">{{ $message }}</p> @enderror
-            </div>
-
-            <div>
-                <label for="recambios" class="{{ $labelClass }}">Acción / Recambio</label>
-                <textarea id="recambios" wire:model="recambios" rows="3" class="{{ $fieldClass }} resize-none" placeholder="Qué se cambió o reparó"></textarea>
-                @error('recambios') <p class="text-error text-sm mt-1">{{ $message }}</p> @enderror
-            </div>
-
-            <div>
-                <label for="estado_final" class="{{ $labelClass }}">Estado final</label>
-                <input id="estado_final" type="text" wire:model="estado_final" class="{{ $fieldClass }}">
-                @error('estado_final') <p class="text-error text-sm mt-1">{{ $message }}</p> @enderror
-            </div>
-
-            <div>
-                <label for="tiempo" class="{{ $labelClass }}">Tiempo (horas)</label>
-                <input id="tiempo" type="text" inputmode="decimal" wire:model="tiempo" class="{{ $fieldClass }}" placeholder="1.5">
-                @error('tiempo') <p class="text-error text-sm mt-1">{{ $message }}</p> @enderror
-            </div>
-
-            <div>
-                <label for="fotos" class="{{ $labelClass }}">Fotos del cierre</label>
-                <input id="fotos" type="file" wire:model="fotos" accept="image/*" capture="environment" multiple class="block w-full text-sm text-ink-secondary file:mr-4 file:border-0 file:bg-layer-1 file:px-4 file:py-3 file:text-sm file:font-medium file:text-ink-primary">
-                @error('fotos') <p class="text-error text-sm mt-1">{{ $message }}</p> @enderror
-                @error('fotos.*') <p class="text-error text-sm mt-1">{{ $message }}</p> @enderror
-
-                @if (count($fotos) > 0)
-                    <div class="grid grid-cols-3 gap-2 mt-3">
-                        @foreach ($fotos as $foto)
-                            <img src="{{ $foto->temporaryUrl() }}" alt="Previsualización foto cierre" class="w-full h-24 object-cover bg-layer-1">
-                        @endforeach
-                    </div>
-                @endif
-            </div>
+            @include('livewire.tecnico.cierre-correctivo-steps')
         @else
-            <div>
-                <label for="fecha" class="{{ $labelClass }}">Fecha</label>
-                <input id="fecha" type="date" wire:model="fecha" class="{{ $fieldClass }}">
-                @error('fecha') <p class="text-error text-sm mt-1">{{ $message }}</p> @enderror
-            </div>
-
-            <div>
-                <label for="ruta" class="{{ $labelClass }}">Ruta</label>
-                <input id="ruta" type="text" wire:model="ruta" class="{{ $fieldClass }}">
-                @error('ruta') <p class="text-error text-sm mt-1">{{ $message }}</p> @enderror
-            </div>
-
-            <div>
-                <label for="fecha_hora" class="{{ $labelClass }}">Verificación fecha/hora</label>
-                <input id="fecha_hora" type="text" wire:model="fecha_hora" class="{{ $fieldClass }}">
-                @error('fecha_hora') <p class="text-error text-sm mt-1">{{ $message }}</p> @enderror
-            </div>
-
-            <div class="grid grid-cols-1 gap-4">
-                @foreach ([
-                    'aspecto' => 'Aspecto',
-                    'funcionamiento' => 'Funcionamiento',
-                    'actuacion' => 'Actuación',
-                    'audio' => 'Audio',
-                    'lineas' => 'Líneas',
-                    'precision_paso' => 'Precisión paso',
-                ] as $field => $label)
-                    <div>
-                        <label for="{{ $field }}" class="{{ $labelClass }}">{{ $label }}</label>
-                        <select id="{{ $field }}" wire:model="{{ $field }}" class="{{ $fieldClass }}">
-                            <option value="OK">OK</option>
-                            <option value="KO">KO</option>
-                            <option value="N/A">N/A</option>
-                        </select>
-                        @error($field) <p class="text-error text-sm mt-1">{{ $message }}</p> @enderror
-                    </div>
-                @endforeach
-            </div>
-
-            <div>
-                <label for="notas" class="{{ $labelClass }}">Notas</label>
-                <textarea id="notas" wire:model="notas" rows="3" maxlength="100" class="{{ $fieldClass }} resize-none" placeholder="Opcional"></textarea>
-                @error('notas') <p class="text-error text-sm mt-1">{{ $message }}</p> @enderror
-            </div>
+            @include('livewire.tecnico.cierre-revision-steps')
         @endif
 
-        @error('cerrar') <p class="text-error text-sm">{{ $message }}</p> @enderror
-
-        <div class="fixed inset-x-0 bottom-0 bg-layer-0 border-t border-line-subtle p-4 pb-safe">
-            <button type="submit" class="tap-target w-full min-h-14 bg-primary-60 hover:bg-primary-70 text-ink-on_color font-medium text-md transition-colors duration-fast-01 ease-carbon-productive">
-                <span wire:loading.remove wire:target="cerrar">Registrar cierre</span>
-                <span wire:loading wire:target="cerrar">Guardando...</span>
-            </button>
-        </div>
-    </form>
+        @error('cerrar')
+            <p class="text-error text-md font-medium mt-4 text-center">{{ $message }}</p>
+        @enderror
+    </main>
 </div>
