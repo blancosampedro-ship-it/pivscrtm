@@ -6,6 +6,7 @@ use App\Models\Asignacion;
 use App\Models\LvRevisionPendiente;
 use App\Models\Piv;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
@@ -128,4 +129,27 @@ it('scope delMes filtra por year y month', function (): void {
     LvRevisionPendiente::factory()->create(['periodo_year' => 2025, 'periodo_month' => 5]);
 
     expect(LvRevisionPendiente::query()->delMes(2026, 5)->count())->toBe(1);
+});
+
+it('scope noPromocionadas filtra solo asignacion_id null', function (): void {
+    LvRevisionPendiente::factory()->create(['asignacion_id' => null]);
+    LvRevisionPendiente::factory()->create(['asignacion_id' => 12345]);
+
+    expect(LvRevisionPendiente::query()->noPromocionadas()->count())->toBe(1);
+});
+
+it('scope requiereVisitaParaFecha filtra status y fecha', function (): void {
+    $today = CarbonImmutable::parse('2026-05-04', 'Europe/Madrid');
+
+    LvRevisionPendiente::factory()->requiereVisita()->create([
+        'fecha_planificada' => $today,
+    ]);
+    LvRevisionPendiente::factory()->pendiente()->create([
+        'fecha_planificada' => $today,
+    ]);
+    LvRevisionPendiente::factory()->requiereVisita()->create([
+        'fecha_planificada' => $today->addDay(),
+    ]);
+
+    expect(LvRevisionPendiente::query()->requiereVisitaParaFecha($today)->count())->toBe(1);
 });
