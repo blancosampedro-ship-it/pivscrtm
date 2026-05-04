@@ -115,6 +115,11 @@ class Piv extends Model
         return $this->hasMany(PivImagen::class, 'piv_id', 'piv_id')->orderBy('posicion');
     }
 
+    public function revisionesPendientes(): HasMany
+    {
+        return $this->hasMany(LvRevisionPendiente::class, 'piv_id', 'piv_id');
+    }
+
     public function instalaciones(): HasMany
     {
         return $this->hasMany(InstaladorPiv::class, 'piv_id', 'piv_id');

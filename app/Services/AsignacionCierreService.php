@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\Asignacion;
 use App\Models\Correctivo;
 use App\Models\LvCorrectivoImagen;
+use App\Models\LvRevisionPendiente;
 use App\Models\Revision;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
@@ -49,6 +50,14 @@ final class AsignacionCierreService
 
             // NO tocamos averia.notas: pertenece al operador que reportó la avería.
             $asignacion->update(['status' => 2]);
+
+            LvRevisionPendiente::query()
+                ->where('asignacion_id', $asignacion->asignacion_id)
+                ->where('status', '!=', LvRevisionPendiente::STATUS_COMPLETADA)
+                ->update([
+                    'status' => LvRevisionPendiente::STATUS_COMPLETADA,
+                    'updated_at' => now(),
+                ]);
 
             return $result;
         });
