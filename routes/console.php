@@ -13,3 +13,9 @@ Schedule::command('lv:generate-revision-pendiente-monthly')
     ->timezone('Europe/Madrid')
     ->onOneServer()
     ->name('lv-generate-revision-pendiente-monthly');
+
+Schedule::command('lv:promote-revisiones-to-asignacion')
+    ->dailyAt('06:00')
+    ->timezone('Europe/Madrid')
+    ->onOneServer()
+    ->name('lv-promote-revisiones-to-asignacion');

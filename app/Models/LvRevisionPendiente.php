@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\LvRevisionPendienteFactory;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -103,6 +104,17 @@ final class LvRevisionPendiente extends Model
     public function scopeDelMes(Builder $query, int $year, int $month): void
     {
         $query->where('periodo_year', $year)->where('periodo_month', $month);
+    }
+
+    public function scopeNoPromocionadas(Builder $query): void
+    {
+        $query->whereNull('asignacion_id');
+    }
+
+    public function scopeRequiereVisitaParaFecha(Builder $query, DateTimeInterface $date): void
+    {
+        $query->where('status', self::STATUS_REQUIERE_VISITA)
+            ->whereDate('fecha_planificada', $date->format('Y-m-d'));
     }
 
     public function isCarryOver(): bool
