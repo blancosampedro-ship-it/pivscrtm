@@ -164,6 +164,20 @@ final class LvRevisionPendienteResource extends Resource
                     ->query(fn (Builder $query, array $data): Builder => filled($data['fecha_planificada'] ?? null)
                         ? $query->whereDate('fecha_planificada', $data['fecha_planificada'])
                         : $query),
+                Tables\Filters\Filter::make('solo_hoy')
+                    ->label('Solo hoy + carry overs')
+                    ->default()
+                    ->query(function (Builder $query): Builder {
+                        $today = CarbonImmutable::now('Europe/Madrid')->toDateString();
+
+                        return $query->where(function (Builder $query) use ($today): void {
+                            $query->whereDate('fecha_planificada', $today)
+                                ->orWhere(function (Builder $query): void {
+                                    $query->whereNotNull('carry_over_origen_id')
+                                        ->where('status', LvRevisionPendiente::STATUS_PENDIENTE);
+                                });
+                        });
+                    }),
                 Tables\Filters\Filter::make('mes')
                     ->form([
                         Forms\Components\Select::make('periodo_year')
