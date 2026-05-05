@@ -6,7 +6,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\LvRevisionPendienteResource\Pages;
 use App\Models\LvRevisionPendiente;
-use App\Models\PivZona;
+use App\Models\PivRuta;
 use App\Services\RevisionPendientePromotorService;
 use Carbon\CarbonImmutable;
 use Filament\Forms;
@@ -37,7 +37,7 @@ final class LvRevisionPendienteResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
     /** @var array<int, string>|null */
-    private static ?array $zonaNombrePorMunicipio = null;
+    private static ?array $rutaNombrePorMunicipio = null;
 
     public static function getNavigationBadge(): ?string
     {
@@ -100,9 +100,9 @@ final class LvRevisionPendienteResource extends Resource
                         'piv',
                         fn (Builder $pivQuery): Builder => $pivQuery->where('parada_cod', 'like', "%{$search}%")
                     )),
-                Tables\Columns\TextColumn::make('zona')
-                    ->label('Zona')
-                    ->getStateUsing(fn (LvRevisionPendiente $record): string => self::zonaNombre($record)),
+                Tables\Columns\TextColumn::make('ruta')
+                    ->label('Ruta')
+                    ->getStateUsing(fn (LvRevisionPendiente $record): string => self::rutaNombre($record)),
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')
                     ->badge()
@@ -129,20 +129,29 @@ final class LvRevisionPendienteResource extends Resource
                     ->tooltip(fn (LvRevisionPendiente $record): ?string => $record->decision_notas),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('zona')
-                    ->label('Zona')
-                    ->options(fn (): array => PivZona::query()->orderBy('sort_order')->pluck('nombre', 'id')->all())
+                Tables\Filters\SelectFilter::make('ruta')
+                    ->label('Ruta')
+                    ->options(fn (): array => PivRuta::query()->orderBy('sort_order')->pluck('nombre', 'id')->prepend('Sin ruta', '__none')->all())
                     ->query(function (Builder $query, array $data): Builder {
                         if (blank($data['value'] ?? null)) {
                             return $query;
                         }
 
+                        if ($data['value'] === '__none') {
+                            return $query->whereNotExists(function ($subquery): void {
+                                $subquery->select(DB::raw(1))
+                                    ->from('lv_piv_ruta_municipio as ruta_municipio')
+                                    ->join('piv', 'piv.municipio', '=', DB::raw('ruta_municipio.municipio_modulo_id'))
+                                    ->whereColumn('piv.piv_id', 'lv_revision_pendiente.piv_id');
+                            });
+                        }
+
                         return $query->whereExists(function ($subquery) use ($data): void {
                             $subquery->select(DB::raw(1))
-                                ->from('lv_piv_zona_municipio as zona_municipio')
-                                ->join('piv', 'piv.municipio', '=', DB::raw('zona_municipio.municipio_modulo_id'))
+                                ->from('lv_piv_ruta_municipio as ruta_municipio')
+                                ->join('piv', 'piv.municipio', '=', DB::raw('ruta_municipio.municipio_modulo_id'))
                                 ->whereColumn('piv.piv_id', 'lv_revision_pendiente.piv_id')
-                                ->where('zona_municipio.zona_id', $data['value']);
+                                ->where('ruta_municipio.ruta_id', $data['value']);
                         });
                     }),
                 Tables\Filters\SelectFilter::make('status')
@@ -387,7 +396,7 @@ final class LvRevisionPendienteResource extends Resource
         ];
     }
 
-    private static function zonaNombre(LvRevisionPendiente $record): string
+    private static function rutaNombre(LvRevisionPendiente $record): string
     {
         $municipioId = (int) ($record->piv?->municipio ?? 0);
 
@@ -395,22 +404,22 @@ final class LvRevisionPendienteResource extends Resource
             return '—';
         }
 
-        return self::zonaNombrePorMunicipio()[$municipioId] ?? '—';
+        return self::rutaNombrePorMunicipio()[$municipioId] ?? '—';
     }
 
     /** @return array<int, string> */
-    private static function zonaNombrePorMunicipio(): array
+    private static function rutaNombrePorMunicipio(): array
     {
-        if (self::$zonaNombrePorMunicipio !== null) {
-            return self::$zonaNombrePorMunicipio;
+        if (self::$rutaNombrePorMunicipio !== null) {
+            return self::$rutaNombrePorMunicipio;
         }
 
-        self::$zonaNombrePorMunicipio = DB::table('lv_piv_zona_municipio')
-            ->join('lv_piv_zona', 'lv_piv_zona.id', '=', 'lv_piv_zona_municipio.zona_id')
-            ->pluck('lv_piv_zona.nombre', 'lv_piv_zona_municipio.municipio_modulo_id')
+        self::$rutaNombrePorMunicipio = DB::table('lv_piv_ruta_municipio')
+            ->join('lv_piv_ruta', 'lv_piv_ruta.id', '=', 'lv_piv_ruta_municipio.ruta_id')
+            ->pluck('lv_piv_ruta.nombre', 'lv_piv_ruta_municipio.municipio_modulo_id')
             ->mapWithKeys(fn (string $nombre, int|string $municipioId): array => [(int) $municipioId => $nombre])
             ->all();
 
-        return self::$zonaNombrePorMunicipio;
+        return self::$rutaNombrePorMunicipio;
     }
 }

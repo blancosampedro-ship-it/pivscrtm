@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Filament\Resources\PivZonaResource\RelationManagers;
+namespace App\Filament\Resources\PivRutaResource\RelationManagers;
 
 use App\Models\Modulo;
 use App\Models\Piv;
@@ -13,7 +13,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
-class MunicipiosRelationManager extends RelationManager
+final class MunicipiosRelationManager extends RelationManager
 {
     protected static string $relationship = 'municipios';
 
@@ -29,7 +29,12 @@ class MunicipiosRelationManager extends RelationManager
                     ->pluck('nombre', 'modulo_id'))
                 ->searchable()
                 ->required()
-                ->unique(table: 'lv_piv_zona_municipio', column: 'municipio_modulo_id', ignoreRecord: true),
+                ->unique(table: 'lv_piv_ruta_municipio', column: 'municipio_modulo_id', ignoreRecord: true),
+            Forms\Components\TextInput::make('km_desde_ciempozuelos')
+                ->label('Km desde Ciempozuelos')
+                ->numeric()
+                ->minValue(0)
+                ->maxValue(500),
         ]);
     }
 
@@ -37,14 +42,18 @@ class MunicipiosRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('municipio_modulo_id')
-            ->modifyQueryUsing(fn (Builder $query) => $query->with('modulo:modulo_id,nombre'))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('modulo:modulo_id,nombre'))
             ->columns([
                 Tables\Columns\TextColumn::make('modulo.nombre')
                     ->label('Municipio')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('km_desde_ciempozuelos')
+                    ->label('Km')
+                    ->extraAttributes(['data-mono' => true])
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('paneles_count')
                     ->label('Paneles activos')
-                    ->state(fn ($record) => Piv::query()
+                    ->state(fn ($record): int => Piv::query()
                         ->where('status', 1)
                         ->where('municipio', (string) $record->municipio_modulo_id)
                         ->notArchived()
@@ -55,7 +64,7 @@ class MunicipiosRelationManager extends RelationManager
                 Tables\Actions\CreateAction::make()->label('Asignar municipio'),
             ])
             ->actions([
-                Tables\Actions\DeleteAction::make()->label('Quitar de zona'),
+                Tables\Actions\DeleteAction::make()->label('Quitar de ruta'),
             ]);
     }
 }

@@ -5,7 +5,10 @@ declare(strict_types=1);
 use App\Filament\Resources\LvRevisionPendienteResource;
 use App\Filament\Resources\LvRevisionPendienteResource\Pages\ListLvRevisionPendientes;
 use App\Models\LvRevisionPendiente;
+use App\Models\Modulo;
 use App\Models\Piv;
+use App\Models\PivRuta;
+use App\Models\PivRutaMunicipio;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -109,6 +112,42 @@ it('filter solo_hoy incluye carry over verificada_remoto solo si tiene fecha_pla
 
     Livewire::test(ListLvRevisionPendientes::class)
         ->assertCanNotSeeTableRecords([$rowVerificada]);
+});
+
+it('filter ruta muestra paneles de esa ruta y permite ver sin ruta', function (): void {
+    $now = CarbonImmutable::now('Europe/Madrid');
+    $ruta = PivRuta::factory()->create(['nombre' => 'Rosa Este']);
+    $municipioRuta = Modulo::factory()->municipio('Campo Real')->create(['modulo_id' => 71001]);
+    $municipioSinRuta = Modulo::factory()->municipio('Móstoles')->create(['modulo_id' => 71002]);
+    PivRutaMunicipio::factory()->create([
+        'ruta_id' => $ruta->id,
+        'municipio_modulo_id' => $municipioRuta->modulo_id,
+    ]);
+
+    $rowRuta = LvRevisionPendiente::factory()->for(Piv::factory()->state([
+        'municipio' => (string) $municipioRuta->modulo_id,
+    ]), 'piv')->pendiente()->create([
+        'periodo_year' => $now->year,
+        'periodo_month' => $now->month,
+    ]);
+    $rowSinRuta = LvRevisionPendiente::factory()->for(Piv::factory()->state([
+        'municipio' => (string) $municipioSinRuta->modulo_id,
+    ]), 'piv')->pendiente()->create([
+        'periodo_year' => $now->year,
+        'periodo_month' => $now->month,
+    ]);
+
+    Livewire::test(ListLvRevisionPendientes::class)
+        ->removeTableFilter('solo_hoy')
+        ->filterTable('ruta', $ruta->id)
+        ->assertCanSeeTableRecords([$rowRuta])
+        ->assertCanNotSeeTableRecords([$rowSinRuta]);
+
+    Livewire::test(ListLvRevisionPendientes::class)
+        ->removeTableFilter('solo_hoy')
+        ->filterTable('ruta', '__none')
+        ->assertCanSeeTableRecords([$rowSinRuta])
+        ->assertCanNotSeeTableRecords([$rowRuta]);
 });
 
 it('action verificarRemoto cambia status y registra decision user', function (): void {
