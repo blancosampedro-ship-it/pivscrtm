@@ -395,9 +395,9 @@ Actualiza Excel resumen mensual
 - Cron daily 06:00 promueve `requiere_visita+fecha=today` a `asignacion` legacy `tipo=2 status=1`. NO activo en prod hasta Bloque 14.
 - Hook en `AsignacionCierreService::cerrar()` marca `completada` cuando técnico cierra.
 
-**`lv_averia_icca`** (Bloque 12d, planificado):
-- Importa CSV exportado del SGIP. Política **ADD + mark inactive**.
-- `id`, `sgip_id` (Id en CSV, ej "0028078"), `panel_id_sgip` (Resumen del CSV, ej "PANEL 18484"), `piv_id` (resolved match con `parada_cod`, nullable si no se encuentra), `categoria` (4 valores enum: comunicación / apagado / tiempos / otra), `descripcion` text, `notas` text largo, `estado_externo` (CSV column "Estado", ej "asignada"), `asignada_a` (CSV column, ej "SGIP_winfin"), `activa` boolean, `fecha_import`, `archivo_origen` (filename), `imported_by_user_id` FK `lv_users`, `marked_inactive_at`, timestamps.
+**`lv_averia_icca`** (Bloque 12d, implementado):
+- Importa CSV exportado del SGIP mediante `ImportarSgip` (UI Filament) o `lv:import-averia-icca`. Política **ADD + mark inactive**.
+- `id`, `sgip_id` (Id en CSV, ej "0028078"), `panel_id_sgip` (Resumen del CSV, ej "PANEL 18484"), `piv_id` (resolved match con `parada_cod`, nullable si no se encuentra, si es ambiguo por sufijos A/B o si no hay match), `categoria` (comunicación / apagado / tiempos / audio / otras), `descripcion` text, `notas` mediumText, `estado_externo` (CSV column "Estado", ej "asignada"), `asignada_a` (CSV column, ej "SGIP_winfin"), `activa` boolean, `fecha_import`, `archivo_origen` (filename), `imported_by_user_id` FK `lv_users`, `marked_inactive_at`, timestamps.
 - UNIQUE en `sgip_id` (idempotencia).
 
 **`lv_ruta_dia`** (Bloque 12e/f, planificado):
@@ -413,11 +413,12 @@ Actualiza Excel resumen mensual
 1. **Import preventivo (mensual)**: `lv:generate-revision-pendiente-monthly` día 1 06:00 crea ~484 filas pendientes. Bloque 12c integra las 5 rutas oficiales del Excel como fuente operativa, pero no distribuye fechas automáticamente; `fecha_planificada` la decide administración desde "Decisiones del día" o un bloque posterior de calendario.
 
 2. **Import correctivo (cada mañana)**: admin sube CSV SGIP via UI Filament. Servicio `AveriaIccaImportService`:
-   - Por cada fila CSV: intenta resolver `piv_id` matcheando "PANEL XXXXX" → `piv.parada_cod`.
+    - Por cada fila CSV: intenta resolver `piv_id` matcheando "PANEL XXXXX" → `piv.parada_cod` exacto y, si falla, fallback por `CAST(parada_cod AS UNSIGNED)`.
+    - Si el match por cast devuelve más de un panel (sufijos A/B) o no devuelve ninguno, conserva `piv_id=NULL` y lo reporta en preview como ambiguo/no-match.
    - Si `sgip_id` ya existe → UPDATE (refresca categoría, notas, etc.).
    - Si NO existe → INSERT con `activa=true`.
    - Tras procesar todas las filas, las que existían en BD `activa=true` y NO aparecen en el CSV → `activa=false` + `marked_inactive_at=now()`.
-   - Métricas devueltas: `[created, updated, marked_inactive, unmatched_panels]`.
+    - Métricas preview: filas parseadas, IDs únicos, duplicados, altas, updates, inactivaciones, paneles sin match y paneles ambiguos.
 
 3. **Planificador diario (Bloque 12e)**: query union de:
     - `lv_averia_icca` activa=true + `piv.municipio` resuelto vía `lv_piv_ruta_municipio` para agrupar por ruta.
