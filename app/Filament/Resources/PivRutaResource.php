@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\PivZonaResource\Pages;
-use App\Filament\Resources\PivZonaResource\RelationManagers\MunicipiosRelationManager;
-use App\Models\PivZona;
+use App\Filament\Resources\PivRutaResource\Pages;
+use App\Filament\Resources\PivRutaResource\RelationManagers\MunicipiosRelationManager;
+use App\Models\PivRuta;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Infolists;
@@ -16,9 +16,9 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
-class PivZonaResource extends Resource
+final class PivRutaResource extends Resource
 {
-    protected static ?string $model = PivZona::class;
+    protected static ?string $model = PivRuta::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-map';
 
@@ -26,11 +26,13 @@ class PivZonaResource extends Resource
 
     protected static ?int $navigationSort = 5;
 
-    protected static ?string $modelLabel = 'zona operativa';
+    protected static ?string $navigationLabel = 'Rutas';
 
-    protected static ?string $pluralModelLabel = 'zonas operativas';
+    protected static ?string $modelLabel = 'ruta';
 
-    protected static ?string $slug = 'zonas';
+    protected static ?string $pluralModelLabel = 'rutas';
+
+    protected static ?string $slug = 'rutas-operativas';
 
     public static function getEloquentQuery(): Builder
     {
@@ -43,19 +45,34 @@ class PivZonaResource extends Resource
             Forms\Components\Section::make('Identidad')
                 ->columns(3)
                 ->schema([
+                    Forms\Components\TextInput::make('codigo')
+                        ->label('Código')
+                        ->required()
+                        ->maxLength(12)
+                        ->unique(table: 'lv_piv_ruta', column: 'codigo', ignoreRecord: true)
+                        ->extraInputAttributes(['style' => 'text-transform:uppercase']),
                     Forms\Components\TextInput::make('nombre')
                         ->label('Nombre')
                         ->required()
                         ->maxLength(80)
-                        ->unique(table: 'lv_piv_zona', column: 'nombre', ignoreRecord: true),
+                        ->unique(table: 'lv_piv_ruta', column: 'nombre', ignoreRecord: true),
+                    Forms\Components\TextInput::make('zona_geografica')
+                        ->label('Zona geográfica')
+                        ->maxLength(120),
                     Forms\Components\ColorPicker::make('color_hint')
                         ->label('Color')
                         ->nullable()
                         ->regex('/^#[0-9A-Fa-f]{6}$/'),
+                    Forms\Components\TextInput::make('km_medio')
+                        ->label('Km medio')
+                        ->numeric()
+                        ->minValue(0)
+                        ->maxValue(500),
                     Forms\Components\TextInput::make('sort_order')
                         ->label('Orden')
                         ->numeric()
                         ->minValue(0)
+                        ->maxValue(999)
                         ->default(0)
                         ->required(),
                 ]),
@@ -69,13 +86,33 @@ class PivZonaResource extends Resource
             ->paginated([25, 50, 100])
             ->defaultPaginationPageOption(25)
             ->columns([
+                Tables\Columns\TextColumn::make('codigo')
+                    ->label('Código')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        PivRuta::COD_ROSA_NO, PivRuta::COD_ROSA_E => 'pink',
+                        PivRuta::COD_VERDE => 'success',
+                        PivRuta::COD_AZUL => 'primary',
+                        PivRuta::COD_AMARILLO => 'warning',
+                        default => 'gray',
+                    })
+                    ->extraAttributes(['data-mono' => true])
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('nombre')
-                    ->label('Zona')
+                    ->label('Ruta')
                     ->searchable()
                     ->sortable()
                     ->weight('medium'),
+                Tables\Columns\TextColumn::make('zona_geografica')
+                    ->label('Zona geográfica')
+                    ->limit(50),
                 Tables\Columns\ColorColumn::make('color_hint')
                     ->label('Color'),
+                Tables\Columns\TextColumn::make('km_medio')
+                    ->label('Km medio')
+                    ->extraAttributes(['data-mono' => true])
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('municipios_count')
                     ->label('Municipios')
                     ->badge()
@@ -92,7 +129,7 @@ class PivZonaResource extends Resource
                         ->icon('heroicon-o-eye')
                         ->slideOver()
                         ->modalWidth('2xl')
-                        ->infolist(fn (Infolist $infolist) => self::infolist($infolist)),
+                        ->infolist(fn (Infolist $infolist): Infolist => self::infolist($infolist)),
                     Tables\Actions\EditAction::make()
                         ->label('Editar'),
                     Tables\Actions\DeleteAction::make()
@@ -110,14 +147,23 @@ class PivZonaResource extends Resource
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist->schema([
-            Infolists\Components\Section::make('Zona')
+            Infolists\Components\Section::make('Ruta')
                 ->columns(3)
                 ->schema([
+                    Infolists\Components\TextEntry::make('codigo')
+                        ->label('Código')
+                        ->badge(),
                     Infolists\Components\TextEntry::make('nombre')
                         ->label('Nombre'),
                     Infolists\Components\TextEntry::make('color_hint')
                         ->label('Color')
                         ->badge()
+                        ->placeholder('—'),
+                    Infolists\Components\TextEntry::make('zona_geografica')
+                        ->label('Zona geográfica'),
+                    Infolists\Components\TextEntry::make('km_medio')
+                        ->label('Km medio')
+                        ->extraAttributes(['data-mono' => true])
                         ->placeholder('—'),
                     Infolists\Components\TextEntry::make('sort_order')
                         ->label('Orden')
@@ -127,7 +173,7 @@ class PivZonaResource extends Resource
                 ->schema([
                     Infolists\Components\TextEntry::make('municipios_list')
                         ->label('')
-                        ->getStateUsing(fn (PivZona $record) => $record->municipios()
+                        ->getStateUsing(fn (PivRuta $record): string => $record->municipios()
                             ->with('modulo:modulo_id,nombre')
                             ->get()
                             ->pluck('modulo.nombre')
@@ -150,9 +196,9 @@ class PivZonaResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPivZonas::route('/'),
-            'create' => Pages\CreatePivZona::route('/create'),
-            'edit' => Pages\EditPivZona::route('/{record}/edit'),
+            'index' => Pages\ListPivRutas::route('/'),
+            'create' => Pages\CreatePivRuta::route('/create'),
+            'edit' => Pages\EditPivRuta::route('/{record}/edit'),
         ];
     }
 }

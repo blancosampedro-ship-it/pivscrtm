@@ -317,3 +317,134 @@ Ver [ADR-0003](docs/decisions/0003-auth-migration.md) para el flujo completo (in
 | 5 | Técnico cierra avería desde el móvil con foto. |
 | 6 | Cron mensual crea asignaciones tipo=2 sin tocar la app vieja. |
 | 7 | App vieja apagada, redirects 301 funcionando, dump público borrado. |
+
+---
+
+## 13. Sistemas externos (SGIP / ICCA) y flujo administrativo
+
+> Información operativa compartida por la responsable del contrato Winfin–CRTM (5 may 2026). Cambia el modelo de dominio del módulo 12.
+
+### 13.1 Sistemas externos identificados
+
+**SGIP** (per-operador): cada operador del CRTM dispone de su propio SGIP. Inventario operativo de paneles + estado de comunicación + módulo de incidencias asignadas. Winfin accede al SGIP del operador para resolver y reportar.
+
+**ICCA** (Centro de Atención al Usuario CRTM): sistema central donde se recogen TODAS las averías de todos los operadores. ICCA asigna averías a Winfin (u otro instalador). Winfin las ve aparecer en el módulo de incidencias del SGIP del operador correspondiente. ICCA permite descargar CSV con las averías asignadas.
+
+**Excel WINFIN_Rutas_PIV_Madrid.xlsx**: planificación BASE mensual con **5 rutas oficiales** del territorio Comunidad de Madrid. Fuente: `/Users/winfin/Documents/LENOVO1/WINFIN PIVS/PIVCORE/Como Funcionamos/`.
+
+| Código | Nombre | Zona Geográfica | Nº Munic. | Km medio desde Ciempozuelos |
+|---|---|---|---|---|
+| ROSA-NO | Rosa Noroeste | Sierra de Guadarrama / Cuenca Alta | 18 | 80 |
+| ROSA-E | Rosa Este | Corredor del Henares / Tajuña | 11 | 51 |
+| VERDE | Verde Norte | Sierra Norte / Centro Norte | 20 | 85 |
+| AZUL | Azul Suroeste | Suroeste (Navalcarnero–San Martín) | 15 | 84 |
+| AMARILLO | Amarillo Sureste | Sureste / Vega del Tajo y Tajuña | 17 | 36 |
+
+Total **81 municipios maestros** asignados a ruta. Los 63 municipios legacy con paneles que no aparecen en el Excel quedan **sin ruta asignada** — gestión ad-hoc desde administración.
+
+Punto de salida fijo: **Ciempozuelos** (sede operativa Winfin).
+
+### 13.2 Operativa real diaria (lo que la app debe replicar)
+
+```
+Antes del mes
+    ↓
+[Excel rutas mensual disponible — ya hecho]
+    ↓
+Cada mañana
+    ↓
+Admin descarga CSV averías ICCA del día (asignadas Winfin)
+    ↓
+Cruza con preventivos cercanos según rutas Excel
+    ↓
+Construye RUTA MIXTA optimizada por proximidad
+   (averías + preventivos del día + carry overs)
+    ↓
+Asigna ruta a técnico
+    ↓
+Técnico ejecuta en campo (PWA)
+    ↓
+Reporta resultados (resueltas / no resueltas / preventivos / observaciones / causa de no-resolución)
+    ↓
+Día siguiente
+    ↓
+Admin cierra averías ICCA (las resueltas)
+    ↓
+Deriva las que NO son Winfin:
+   - sin tensión → Clear Channel
+   - software / sistema ajeno → industrial correspondiente
+   - no atribuible Winfin → documentar y derivar
+    ↓
+Actualiza Excel resumen mensual
+```
+
+**Frase nuclear** (literal de la responsable):
+> "Cada día la app cruza las averías activas de ICCA con las rutas preventivas planificadas y propone una ruta optimizada por zona, permitiendo al técnico cerrar trabajos en campo y a administración actualizar ICCA, derivaciones y resumen mensual."
+
+### 13.3 Tablas nuevas del módulo 12 (planificación + correctivos)
+
+**`lv_piv_ruta`** (ex `lv_piv_zona`, refactor Bloque 12c):
+- `id`, `codigo` (ROSA-NO, ROSA-E, VERDE, AZUL, AMARILLO), `nombre` (Rosa Noroeste...), `zona_geografica`, `color_hint`, `km_medio`, `sort_order`, timestamps.
+
+**`lv_piv_ruta_municipio`** (ex `lv_piv_zona_municipio`):
+- `id`, `ruta_id` FK lv_piv_ruta.id ON DELETE CASCADE, `municipio_modulo_id` (FK lógica `modulo.modulo_id` con `tipo=5`), `km_desde_ciempozuelos`, timestamps. UNIQUE en `municipio_modulo_id` (un municipio = una sola ruta).
+
+**`lv_revision_pendiente`** (Bloque 12b.3, sin cambios estructurales):
+- Genera mensualmente el cron `lv:generate-revision-pendiente-monthly`.
+- Admin decide cada fila día a día (`pendiente` / `verificada_remoto` / `requiere_visita+fecha` / `excepcion` / `completada`).
+- Cron daily 06:00 promueve `requiere_visita+fecha=today` a `asignacion` legacy `tipo=2 status=1`. NO activo en prod hasta Bloque 14.
+- Hook en `AsignacionCierreService::cerrar()` marca `completada` cuando técnico cierra.
+
+**`lv_averia_icca`** (Bloque 12d, planificado):
+- Importa CSV exportado del SGIP. Política **ADD + mark inactive**.
+- `id`, `sgip_id` (Id en CSV, ej "0028078"), `panel_id_sgip` (Resumen del CSV, ej "PANEL 18484"), `piv_id` (resolved match con `parada_cod`, nullable si no se encuentra), `categoria` (4 valores enum: comunicación / apagado / tiempos / otra), `descripcion` text, `notas` text largo, `estado_externo` (CSV column "Estado", ej "asignada"), `asignada_a` (CSV column, ej "SGIP_winfin"), `activa` boolean, `fecha_import`, `archivo_origen` (filename), `imported_by_user_id` FK `lv_users`, `marked_inactive_at`, timestamps.
+- UNIQUE en `sgip_id` (idempotencia).
+
+**`lv_ruta_dia`** (Bloque 12e/f, planificado):
+- Una fila por (técnico, fecha). Contiene la ruta del día.
+- Composición: `lv_ruta_dia_item` con N filas que apuntan a `lv_averia_icca` o `lv_revision_pendiente`, cada una con `orden` (sequence en la ruta).
+
+**`lv_derivacion`** (Bloque 12h, planificado):
+- Trazabilidad de averías derivadas a Clear Channel / industrial / etc.
+- `id`, `lv_averia_icca_id`, `destino` enum (`clear_channel`, `industrial_software`, `otro`), `motivo`, `fecha_derivacion`, `derivada_by_user_id`, timestamps.
+
+### 13.4 Flujo de datos: import → planificador → ruta → cierre → reporte
+
+1. **Import preventivo (mensual)**: `lv:generate-revision-pendiente-monthly` día 1 06:00 crea ~484 filas pendientes. Bloque 12c integra las 5 rutas oficiales del Excel como fuente operativa, pero no distribuye fechas automáticamente; `fecha_planificada` la decide administración desde "Decisiones del día" o un bloque posterior de calendario.
+
+2. **Import correctivo (cada mañana)**: admin sube CSV SGIP via UI Filament. Servicio `AveriaIccaImportService`:
+   - Por cada fila CSV: intenta resolver `piv_id` matcheando "PANEL XXXXX" → `piv.parada_cod`.
+   - Si `sgip_id` ya existe → UPDATE (refresca categoría, notas, etc.).
+   - Si NO existe → INSERT con `activa=true`.
+   - Tras procesar todas las filas, las que existían en BD `activa=true` y NO aparecen en el CSV → `activa=false` + `marked_inactive_at=now()`.
+   - Métricas devueltas: `[created, updated, marked_inactive, unmatched_panels]`.
+
+3. **Planificador diario (Bloque 12e)**: query union de:
+    - `lv_averia_icca` activa=true + `piv.municipio` resuelto vía `lv_piv_ruta_municipio` para agrupar por ruta.
+   - `lv_revision_pendiente requiere_visita today + asignacion_id IS NULL` + `lv_revision_pendiente pendiente carry_over_origen_id IS NOT NULL`.
+   - Output: lista por ruta + ordenada por km_desde_ciempozuelos.
+
+4. **Asignación técnico (Bloque 12f)**: admin asigna la ruta del día completa a un técnico activo via UI.
+
+5. **PWA técnico ruta del día (Bloque 12g)**: PWA muestra lista mixta agrupada por panel. Técnico cierra cada uno con causa si no resuelve.
+
+6. **Cierre admin (Bloque 12h)**: admin revisa lo cerrado por técnico. Para `lv_averia_icca` activas: opción "Cerrar en SGIP" (admin la cierra externamente y aquí marcamos `activa=false` con motivo) o "Derivar" → crea `lv_derivacion`.
+
+7. **Reporte mensual (Bloque 12i)**: export Excel/PDF con resumen contractual del mes. Reemplaza el `MAYO 2026.xlsx` actual.
+
+### 13.5 Coexistencia con sistemas externos durante migración
+
+Durante la implementación del módulo 12 (semanas posteriores al 5 may 2026):
+- **SGIP** y **ICCA** siguen siendo la fuente de verdad operativa externa.
+- **App nueva** importa datos de SGIP via CSV (manual upload por admin).
+- **App vieja** Winfin sigue activa para cierre de averías y resumen mensual hasta que módulo 12c+d+e+f estén funcionales.
+- **Excel rutas + Excel resumen** se mantienen como audit trail y respaldo durante la transición.
+- **Cutover full** se decide cuando 12c→12i estén testeados en prod con datos reales 1+ mes.
+
+### 13.6 Riesgos del módulo 12 (additional)
+
+- **Encoding municipios Excel ↔ `modulo.nombre` legacy**: ambos son UTF-8 ahora, pero el cast `Latin1String` (Bloque 03 + 07b/c) pone los acentos en el orden esperado. Verificación cross-encoding obligatoria antes del seed Bloque 12c.
+- **Match `PANEL XXXXX` ↔ `parada_cod`**: requiere regla numérica + tratamiento sufijos letra (A/B). Algunos `parada_cod` legacy tienen tabs trailing (`'07022\t\t'`) — afecta match exacto string, ya registrado como Bloque 02b cleanup.
+- **CSV format drift**: si SGIP cambia columnas del export, el `AveriaIccaImportService` debe degradar elegante (warn + skip rows malformadas, no crash).
+- **Escalado averías inactivas**: `lv_averia_icca` con `activa=false` crece monótono. Tras 1 año puede haber 10000+ filas. Index en `(activa, fecha_import)` obligatorio. Cleanup retroactivo (DELETE inactivas > N meses) decisión separada.
+- **Optimizador ruta sin lat/lng**: el algoritmo Bloque 12e usa solo `km_desde_ciempozuelos` + `ruta_id`. Resultado subóptimo geográficamente pero suficiente para la operativa actual. Si se requiere optimización real (TSP), Bloque 02f (geocoding paneles) precondición.
