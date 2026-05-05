@@ -33,16 +33,89 @@ it('lista muestra filas pendientes del mes actual', function (): void {
     $row = LvRevisionPendiente::factory()->for(Piv::factory(), 'piv')->pendiente()->create([
         'periodo_year' => $now->year,
         'periodo_month' => $now->month,
+        'fecha_planificada' => $now->toDateString(),
     ]);
 
     Livewire::test(ListLvRevisionPendientes::class)
         ->assertCanSeeTableRecords([$row]);
 });
 
+it('filter solo_hoy default activo muestra filas requiere_visita today y carry overs pendientes', function (): void {
+    $now = CarbonImmutable::now('Europe/Madrid');
+    $previousMonth = $now->subMonth();
+
+    $rowToday = LvRevisionPendiente::factory()->for(Piv::factory(), 'piv')->requiereVisita()->create([
+        'periodo_year' => $now->year,
+        'periodo_month' => $now->month,
+        'fecha_planificada' => $now->toDateString(),
+    ]);
+    $rowFuture = LvRevisionPendiente::factory()->for(Piv::factory(), 'piv')->requiereVisita()->create([
+        'periodo_year' => $now->year,
+        'periodo_month' => $now->month,
+        'fecha_planificada' => $now->addDays(3)->toDateString(),
+    ]);
+    $rowCarryOrigen = LvRevisionPendiente::factory()->for(Piv::factory(), 'piv')->pendiente()->create([
+        'periodo_year' => $previousMonth->year,
+        'periodo_month' => $previousMonth->month,
+    ]);
+    $rowCarry = LvRevisionPendiente::factory()->for(Piv::factory(), 'piv')->pendiente()->create([
+        'periodo_year' => $now->year,
+        'periodo_month' => $now->month,
+        'carry_over_origen_id' => $rowCarryOrigen->id,
+    ]);
+    $rowOtra = LvRevisionPendiente::factory()->for(Piv::factory(), 'piv')->pendiente()->create([
+        'periodo_year' => $now->year,
+        'periodo_month' => $now->month,
+        'carry_over_origen_id' => null,
+    ]);
+
+    Livewire::test(ListLvRevisionPendientes::class)
+        ->assertCanSeeTableRecords([$rowToday, $rowCarry])
+        ->assertCanNotSeeTableRecords([$rowFuture, $rowOtra]);
+});
+
+it('filter solo_hoy desactivado muestra todas las del mes', function (): void {
+    $now = CarbonImmutable::now('Europe/Madrid');
+
+    $rowA = LvRevisionPendiente::factory()->for(Piv::factory(), 'piv')->pendiente()->create([
+        'periodo_year' => $now->year,
+        'periodo_month' => $now->month,
+        'carry_over_origen_id' => null,
+    ]);
+    $rowB = LvRevisionPendiente::factory()->for(Piv::factory(), 'piv')->requiereVisita()->create([
+        'periodo_year' => $now->year,
+        'periodo_month' => $now->month,
+        'fecha_planificada' => $now->addDays(3)->toDateString(),
+    ]);
+
+    Livewire::test(ListLvRevisionPendientes::class)
+        ->removeTableFilter('solo_hoy')
+        ->assertCanSeeTableRecords([$rowA, $rowB]);
+});
+
+it('filter solo_hoy incluye carry over verificada_remoto solo si tiene fecha_planificada today', function (): void {
+    $now = CarbonImmutable::now('Europe/Madrid');
+    $previousMonth = $now->subMonth();
+
+    $rowOrigen = LvRevisionPendiente::factory()->for(Piv::factory(), 'piv')->pendiente()->create([
+        'periodo_year' => $previousMonth->year,
+        'periodo_month' => $previousMonth->month,
+    ]);
+    $rowVerificada = LvRevisionPendiente::factory()->for(Piv::factory(), 'piv')->verificadaRemoto()->create([
+        'periodo_year' => $now->year,
+        'periodo_month' => $now->month,
+        'carry_over_origen_id' => $rowOrigen->id,
+    ]);
+
+    Livewire::test(ListLvRevisionPendientes::class)
+        ->assertCanNotSeeTableRecords([$rowVerificada]);
+});
+
 it('action verificarRemoto cambia status y registra decision user', function (): void {
     $row = LvRevisionPendiente::factory()->for(Piv::factory(), 'piv')->pendiente()->create(currentMonthPeriod());
 
     Livewire::test(ListLvRevisionPendientes::class)
+        ->removeTableFilter('solo_hoy')
         ->callTableAction('verificarRemoto', $row, data: ['decision_notas' => 'Visto OK desde panel externo'])
         ->assertHasNoTableActionErrors();
 
@@ -58,6 +131,7 @@ it('action requiereVisita exige fecha y la guarda', function (): void {
     $fecha = CarbonImmutable::now('Europe/Madrid')->addDay()->format('Y-m-d');
 
     Livewire::test(ListLvRevisionPendientes::class)
+        ->removeTableFilter('solo_hoy')
         ->callTableAction('requiereVisita', $row, data: ['fecha_planificada' => $fecha])
         ->assertHasNoTableActionErrors();
 
@@ -71,6 +145,7 @@ it('action requiereVisita rechaza fecha pasada', function (): void {
     $ayer = CarbonImmutable::now('Europe/Madrid')->subDay()->format('Y-m-d');
 
     Livewire::test(ListLvRevisionPendientes::class)
+        ->removeTableFilter('solo_hoy')
         ->callTableAction('requiereVisita', $row, data: ['fecha_planificada' => $ayer])
         ->assertHasTableActionErrors(['fecha_planificada']);
 });
@@ -79,10 +154,12 @@ it('action marcarExcepcion exige notas', function (): void {
     $row = LvRevisionPendiente::factory()->for(Piv::factory(), 'piv')->pendiente()->create(currentMonthPeriod());
 
     Livewire::test(ListLvRevisionPendientes::class)
+        ->removeTableFilter('solo_hoy')
         ->callTableAction('marcarExcepcion', $row, data: ['decision_notas' => ''])
         ->assertHasTableActionErrors(['decision_notas']);
 
     Livewire::test(ListLvRevisionPendientes::class)
+        ->removeTableFilter('solo_hoy')
         ->callTableAction('marcarExcepcion', $row, data: ['decision_notas' => 'Panel en obras municipales'])
         ->assertHasNoTableActionErrors();
 
@@ -96,6 +173,7 @@ it('action revertir restaura a pendiente y limpia decision', function (): void {
     ]));
 
     Livewire::test(ListLvRevisionPendientes::class)
+        ->removeTableFilter('solo_hoy')
         ->callTableAction('revertir', $row)
         ->assertHasNoTableActionErrors();
 
@@ -112,6 +190,7 @@ it('action revertir no visible si fila ya promocionada', function (): void {
     ]));
 
     Livewire::test(ListLvRevisionPendientes::class)
+        ->removeTableFilter('solo_hoy')
         ->assertTableActionHidden('revertir', $row);
 });
 
@@ -124,6 +203,7 @@ it('bulk verificarRemoto marca solo filas pendientes', function (): void {
     $selectedRows = $rowsPendientes->concat([$rowExcepcion]);
 
     Livewire::test(ListLvRevisionPendientes::class)
+        ->removeTableFilter('solo_hoy')
         ->callTableBulkAction('verificarRemotoBulk', $selectedRows, data: ['decision_notas' => null])
         ->assertHasNoTableBulkActionErrors();
 
