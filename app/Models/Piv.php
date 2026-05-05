@@ -120,6 +120,11 @@ class Piv extends Model
         return $this->hasMany(LvRevisionPendiente::class, 'piv_id', 'piv_id');
     }
 
+    public function averiasIcca(): HasMany
+    {
+        return $this->hasMany(LvAveriaIcca::class, 'piv_id', 'piv_id');
+    }
+
     public function instalaciones(): HasMany
     {
         return $this->hasMany(InstaladorPiv::class, 'piv_id', 'piv_id');
