@@ -9,6 +9,7 @@ use DomainException;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 final class LvRutaDiaItem extends Model
 {
@@ -81,5 +82,10 @@ final class LvRutaDiaItem extends Model
     public function revisionPendiente(): BelongsTo
     {
         return $this->belongsTo(LvRevisionPendiente::class, 'lv_revision_pendiente_id');
+    }
+
+    public function imagenes(): HasMany
+    {
+        return $this->hasMany(LvRutaDiaItemImagen::class, 'ruta_dia_item_id')->orderBy('posicion');
     }
 }
