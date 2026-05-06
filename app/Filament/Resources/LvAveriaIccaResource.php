@@ -11,7 +11,9 @@ use Filament\Forms;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
+use Filament\Support\Enums\ActionSize;
 use Filament\Tables;
+use Filament\Tables\Enums\ActionsPosition;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -141,8 +143,14 @@ final class LvAveriaIccaResource extends Resource
                         });
                     }),
             ])
+            ->recordAction('view')
+            ->actionsPosition(ActionsPosition::AfterColumns)
             ->actions([
                 Tables\Actions\ViewAction::make()
+                    ->label('Ver')
+                    ->icon('heroicon-m-eye')
+                    ->size(ActionSize::Small)
+                    ->color('gray')
                     ->slideOver()
                     ->modalWidth('3xl')
                     ->infolist(fn (Infolist $infolist): Infolist => self::infolist($infolist)),

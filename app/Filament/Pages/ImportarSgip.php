@@ -56,7 +56,7 @@ final class ImportarSgip extends Page implements HasForms
                     ->maxSize(5120)
                     ->disk('local')
                     ->directory('imports/sgip')
-                    ->preserveFilenames(false)
+                    ->preserveFilenames(true)
                     ->required(),
                 Checkbox::make('confirm_snapshot')
                     ->label('Confirmo que este CSV es foto completa SGIP/ICCA de Winfin')
@@ -67,7 +67,8 @@ final class ImportarSgip extends Page implements HasForms
 
     public function preview(): void
     {
-        $path = $this->csvPath();
+        $state = $this->form->getState();
+        $path = $this->csvPathFromState($state);
 
         if ($path === null) {
             Notification::make()->title('Sube un CSV primero')->danger()->send();
@@ -85,7 +86,8 @@ final class ImportarSgip extends Page implements HasForms
 
     public function confirm(): void
     {
-        $path = $this->csvPath();
+        $state = $this->form->getState();
+        $path = $this->csvPathFromState($state);
 
         if ($path === null || $this->previewResult === null) {
             Notification::make()->title('Genera el preview primero')->danger()->send();
@@ -93,7 +95,7 @@ final class ImportarSgip extends Page implements HasForms
             return;
         }
 
-        if (($this->data['confirm_snapshot'] ?? false) !== true) {
+        if (($state['confirm_snapshot'] ?? false) !== true) {
             Notification::make()->title('Marca la confirmación de foto completa')->danger()->send();
 
             return;
@@ -123,9 +125,12 @@ final class ImportarSgip extends Page implements HasForms
         $this->redirect(LvAveriaIccaResource::getUrl('index'));
     }
 
-    private function csvPath(): ?string
+    /**
+     * @param  array<string, mixed>  $state
+     */
+    private function csvPathFromState(array $state): ?string
     {
-        $path = $this->data['csv'] ?? null;
+        $path = $state['csv'] ?? null;
 
         if (is_array($path)) {
             $path = reset($path) ?: null;

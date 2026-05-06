@@ -139,10 +139,22 @@ final class AveriaIccaImportService
      */
     private function parseCsv(string $path): array
     {
-        $handle = fopen($path, 'r');
-        if ($handle === false) {
+        $raw = @file_get_contents($path);
+        if ($raw === false) {
             throw new RuntimeException("No se pudo abrir el CSV: {$path}");
         }
+
+        // Normalizar line endings: CRLF y CR (Mac Classic) → LF.
+        // Algunos exports SGIP mezclan terminadores (CRLF + CR + LF) y fgetcsv default
+        // no detecta CR-only, leyendo todo el CSV como una sola fila gigante.
+        $normalized = str_replace(["\r\n", "\r"], "\n", $raw);
+
+        $handle = fopen('php://temp', 'r+');
+        if ($handle === false) {
+            throw new RuntimeException('No se pudo abrir buffer temp para CSV');
+        }
+        fwrite($handle, $normalized);
+        rewind($handle);
 
         $header = fgetcsv($handle);
         if ($header === false) {
