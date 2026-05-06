@@ -165,7 +165,10 @@ class AveriaResource extends Resource
             ->defaultSort('fecha', 'desc')
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
-                    ->options([1 => 'Abierta', 2 => 'Cerrada', 4 => 'Status 4']),
+                    ->options([1 => 'Abierta', 2 => 'Cerrada', 4 => 'Status 4'])
+                    ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
+                        ? $query->where('status', $data['value'])
+                        : $query),
                 Tables\Filters\SelectFilter::make('tecnico_id')
                     ->label('Técnico')
                     ->relationship('tecnico', 'nombre_completo')

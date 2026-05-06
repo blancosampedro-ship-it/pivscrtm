@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\LvRutaDiaResource\RelationManagers;
 
+use App\Filament\Resources\PivResource;
 use App\Models\LvRutaDia;
 use App\Models\LvRutaDiaItem;
+use App\Models\Modulo;
 use App\Services\PlanificadorDelDiaService;
 use Filament\Forms;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Support\Enums\ActionSize;
 use Filament\Tables;
 use Filament\Tables\Enums\ActionsPosition;
 use Filament\Tables\Table;
@@ -20,6 +23,14 @@ final class ItemsRelationManager extends RelationManager
     protected static string $relationship = 'items';
 
     protected static ?string $title = 'Items de la ruta';
+
+    /**
+     * Cache estático municipio_modulo_id → {nombre, km, ruta_codigo, ruta_nombre}.
+     * 1 query precargada por request, evita N+1 con N items.
+     *
+     * @var array<int, array{nombre: ?string, km: ?int, ruta_codigo: ?string, ruta_nombre: ?string}>|null
+     */
+    private static ?array $municipioMap = null;
 
     public function table(Table $table): Table
     {
@@ -47,7 +58,12 @@ final class ItemsRelationManager extends RelationManager
                     ->extraAttributes(['data-mono' => true]),
                 Tables\Columns\TextColumn::make('municipio')
                     ->label('Municipio')
-                    ->state(fn (LvRutaDiaItem $record): string => self::municipioId($record) !== null ? (string) self::municipioId($record) : '—')
+                    ->state(fn (LvRutaDiaItem $record): string => self::municipioNombre($record) ?? '—'),
+                Tables\Columns\TextColumn::make('ruta')
+                    ->label('Ruta')
+                    ->state(fn (LvRutaDiaItem $record): string => self::rutaCodigo($record) ?? 'Sin ruta')
+                    ->badge()
+                    ->color(fn (LvRutaDiaItem $record): string => self::rutaCodigo($record) !== null ? 'primary' : 'gray')
                     ->extraAttributes(['data-mono' => true]),
                 Tables\Columns\TextColumn::make('km')
                     ->label('Km')
@@ -83,10 +99,49 @@ final class ItemsRelationManager extends RelationManager
             ])
             ->actionsPosition(ActionsPosition::AfterColumns)
             ->actions([
+                Tables\Actions\Action::make('verPanel')
+                    ->label('Ver panel')
+                    ->icon('heroicon-m-arrow-top-right-on-square')
+                    ->color('gray')
+                    ->size(ActionSize::Small)
+                    ->url(fn (LvRutaDiaItem $record): ?string => self::pivIdResolved($record) !== null
+                        ? PivResource::getUrl('view', ['record' => self::pivIdResolved($record)])
+                        : null)
+                    ->openUrlInNewTab()
+                    ->visible(fn (LvRutaDiaItem $record): bool => self::pivIdResolved($record) !== null),
                 Tables\Actions\DeleteAction::make()
                     ->label('Eliminar')
                     ->visible(fn (): bool => $this->ownerRecord instanceof LvRutaDia && $this->ownerRecord->isEditable()),
             ]);
+    }
+
+    public static function municipioNombre(LvRutaDiaItem $item): ?string
+    {
+        $municipioId = self::municipioId($item);
+        if ($municipioId === null) {
+            return null;
+        }
+
+        return self::getMunicipioMap()[$municipioId]['nombre'] ?? null;
+    }
+
+    public static function rutaCodigo(LvRutaDiaItem $item): ?string
+    {
+        $municipioId = self::municipioId($item);
+        if ($municipioId === null) {
+            return null;
+        }
+
+        return self::getMunicipioMap()[$municipioId]['ruta_codigo'] ?? null;
+    }
+
+    public static function pivIdResolved(LvRutaDiaItem $item): ?int
+    {
+        if ($item->tipo_item === LvRutaDiaItem::TIPO_CORRECTIVO) {
+            return $item->averiaIcca?->piv_id;
+        }
+
+        return $item->revisionPendiente?->piv_id;
     }
 
     public static function panelLabel(LvRutaDiaItem $item): string
@@ -119,11 +174,44 @@ final class ItemsRelationManager extends RelationManager
             return null;
         }
 
-        $km = DB::table('lv_piv_ruta_municipio')
-            ->where('municipio_modulo_id', $municipioId)
-            ->value('km_desde_ciempozuelos');
+        return self::getMunicipioMap()[$municipioId]['km'] ?? null;
+    }
 
-        return $km !== null ? (int) $km : null;
+    /**
+     * Cache estático municipio_modulo_id → {nombre, km, ruta_codigo, ruta_nombre}.
+     * 2 queries precargadas por request (modulo via Eloquent para aplicar cast
+     * Latin1String + ruta_municipio via DB::table). Evita N+1.
+     *
+     * @return array<int, array{nombre: ?string, km: ?int, ruta_codigo: ?string, ruta_nombre: ?string}>
+     */
+    private static function getMunicipioMap(): array
+    {
+        if (self::$municipioMap !== null) {
+            return self::$municipioMap;
+        }
+
+        // Eloquent con cast Latin1String aplica decoding UTF-8 correcto a modulo.nombre.
+        $modulos = Modulo::municipios()->get(['modulo_id', 'nombre']);
+
+        // Lookup ruta + km por municipio_modulo_id (UTF-8 nativo de lv_piv_ruta*).
+        $rutaInfo = DB::table('lv_piv_ruta_municipio as rm')
+            ->leftJoin('lv_piv_ruta as r', 'r.id', '=', 'rm.ruta_id')
+            ->select('rm.municipio_modulo_id', 'rm.km_desde_ciempozuelos as km', 'r.codigo as ruta_codigo', 'r.nombre as ruta_nombre')
+            ->get()
+            ->keyBy('municipio_modulo_id');
+
+        self::$municipioMap = $modulos->mapWithKeys(function (Modulo $m) use ($rutaInfo): array {
+            $info = $rutaInfo->get($m->modulo_id);
+
+            return [(int) $m->modulo_id => [
+                'nombre' => $m->nombre !== null ? trim((string) $m->nombre) : null,
+                'km' => $info?->km !== null ? (int) $info->km : null,
+                'ruta_codigo' => $info?->ruta_codigo,
+                'ruta_nombre' => $info?->ruta_nombre,
+            ]];
+        })->all();
+
+        return self::$municipioMap;
     }
 
     private static function isAmbiguous(LvRutaDiaItem $item): bool

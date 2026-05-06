@@ -207,7 +207,10 @@ class PivResource extends Resource
                         blank: fn (Builder $q) => $q->notArchived(),
                     ),
                 Tables\Filters\SelectFilter::make('status')
-                    ->options([1 => 'Operativos', 0 => 'Inactivos']),
+                    ->options([1 => 'Operativos', 0 => 'Inactivos'])
+                    ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
+                        ? $query->where('status', $data['value'])
+                        : $query),
                 Tables\Filters\SelectFilter::make('municipio')
                     ->label('Municipio')
                     ->options(fn () => self::municipioOptions())

@@ -194,7 +194,10 @@ class AsignacionResource extends Resource
                         2 => 'Revisión rutinaria',
                     ]),
                 Tables\Filters\SelectFilter::make('status')
-                    ->options([1 => 'Abierta', 2 => 'Cerrada']),
+                    ->options([1 => 'Abierta', 2 => 'Cerrada'])
+                    ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
+                        ? $query->where('status', $data['value'])
+                        : $query),
                 Tables\Filters\SelectFilter::make('tecnico_id')
                     ->label('Técnico')
                     ->relationship('tecnico', 'nombre_completo')
