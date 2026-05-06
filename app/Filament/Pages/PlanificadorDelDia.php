@@ -49,6 +49,7 @@ final class PlanificadorDelDia extends Page implements HasForms
             ->schema([
                 DatePicker::make('fecha')
                     ->label('Fecha')
+                    ->helperText('Solo filtra preventivos y carry overs. Las averías ICCA muestran siempre las abiertas en SGIP.')
                     ->required()
                     ->displayFormat('Y-m-d')
                     ->live()
