@@ -175,7 +175,11 @@ final class LvRutaDiaResource extends Resource
                     ->options(fn (): array => Tecnico::query()->orderBy('nombre_completo')->pluck('nombre_completo', 'tecnico_id')->all())
                     ->searchable(),
                 Tables\Filters\SelectFilter::make('status')
-                    ->options(self::statusOptions()),
+                    ->label('Status')
+                    ->options(self::statusOptions())
+                    ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
+                        ? $query->where('status', $data['value'])
+                        : $query),
                 Tables\Filters\Filter::make('fecha')
                     ->form([
                         Forms\Components\DatePicker::make('desde')->label('Desde'),

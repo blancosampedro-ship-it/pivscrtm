@@ -155,7 +155,10 @@ final class LvRevisionPendienteResource extends Resource
                         });
                     }),
                 Tables\Filters\SelectFilter::make('status')
-                    ->options(self::statusOptions()),
+                    ->options(self::statusOptions())
+                    ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
+                        ? $query->where('status', $data['value'])
+                        : $query),
                 Tables\Filters\TernaryFilter::make('carry_over')
                     ->label('Carry-over')
                     ->placeholder('Todos')
