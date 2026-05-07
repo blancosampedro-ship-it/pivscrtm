@@ -43,6 +43,12 @@ final class LvRutaDiaItem extends Model
         self::STATUS_DERIVADO,
     ];
 
+    public const STATUSES_DERIVABLES = [
+        self::STATUS_PENDIENTE,
+        self::STATUS_CERRADO,
+        self::STATUS_NO_RESUELTO,
+    ];
+
     protected $fillable = [
         'ruta_dia_id',
         'orden',

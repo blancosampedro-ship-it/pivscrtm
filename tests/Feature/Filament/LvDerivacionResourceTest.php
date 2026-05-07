@@ -52,6 +52,28 @@ it('header action Nueva derivacion crea derivacion', function (): void {
     ]);
 });
 
+it('header action Nueva derivacion permite item no_resuelto para trigger A', function (): void {
+    $item = LvRutaDiaItem::factory()->create([
+        'status' => LvRutaDiaItem::STATUS_NO_RESUELTO,
+        'causa_no_resolucion' => 'Acceso bloqueado',
+    ]);
+
+    Livewire::test(ListLvDerivaciones::class)
+        ->callTableAction('nuevaDerivacion', data: [
+            'lv_ruta_dia_item_id' => $item->id,
+            'tipo_causa' => LvDerivacion::CAUSA_AUTORIZACION,
+            'actor_responsable' => LvDerivacion::ACTOR_AYUNTAMIENTO,
+            'notas_derivacion' => 'Trigger A - tecnico cerro no_resuelto, admin tipifica',
+        ])
+        ->assertHasNoTableActionErrors();
+
+    $this->assertDatabaseHas('lv_derivacion', [
+        'lv_ruta_dia_item_id' => $item->id,
+        'status' => LvDerivacion::STATUS_PENDIENTE_TERCERO,
+    ]);
+    expect($item->fresh()->status)->toBe(LvRutaDiaItem::STATUS_DERIVADO);
+});
+
 it('acciones por fila cambian status sin crash', function (): void {
     $derivacion = LvDerivacion::factory()->create();
 

@@ -373,7 +373,7 @@ final class LvDerivacionResource extends Resource
     {
         return LvRutaDiaItem::query()
             ->with(['rutaDia:id,fecha,tecnico_id', 'averiaIcca.piv:piv_id,parada_cod', 'revisionPendiente.piv:piv_id,parada_cod', 'derivacionAbierta'])
-            ->whereIn('status', [LvRutaDiaItem::STATUS_PENDIENTE, LvRutaDiaItem::STATUS_CERRADO])
+            ->whereIn('status', LvRutaDiaItem::STATUSES_DERIVABLES)
             ->whereDoesntHave('derivacionAbierta')
             ->when($search !== '', fn (Builder $query): Builder => $query->where(function (Builder $query) use ($search): void {
                 $query->whereHas('averiaIcca', fn (Builder $averiaQuery): Builder => $averiaQuery->where('panel_id_sgip', 'like', "%{$search}%"))
