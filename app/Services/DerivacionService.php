@@ -32,7 +32,7 @@ final class DerivacionService
             throw new DomainException('Item ya tiene derivación abierta');
         }
 
-        if (! in_array($item->status, [LvRutaDiaItem::STATUS_PENDIENTE, LvRutaDiaItem::STATUS_CERRADO], true)) {
+        if (! in_array($item->status, LvRutaDiaItem::STATUSES_DERIVABLES, true)) {
             throw new DomainException('El item no está en un estado derivable');
         }
 

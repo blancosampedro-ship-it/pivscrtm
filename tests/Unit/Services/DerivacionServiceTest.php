@@ -38,6 +38,24 @@ it('derivar happy path crea derivacion y actualiza item status', function (): vo
     expect($item->fresh()->status)->toBe(LvRutaDiaItem::STATUS_DERIVADO);
 });
 
+it('permite derivar item con status no_resuelto (trigger A real PWA)', function (): void {
+    $item = LvRutaDiaItem::factory()->create([
+        'status' => LvRutaDiaItem::STATUS_NO_RESUELTO,
+        'causa_no_resolucion' => 'Acceso bloqueado por obras del ayuntamiento',
+    ]);
+    $admin = derivacionAdmin();
+
+    $derivacion = app(DerivacionService::class)->derivar($item, [
+        'tipo_causa' => LvDerivacion::CAUSA_AUTORIZACION,
+        'actor_responsable' => LvDerivacion::ACTOR_AYUNTAMIENTO,
+        'actor_notas' => 'Esperar fin de obras',
+        'notas_derivacion' => 'Trigger A - tecnico cerro no_resuelto, admin tipifica',
+    ], $admin);
+
+    expect($derivacion->status)->toBe(LvDerivacion::STATUS_PENDIENTE_TERCERO)
+        ->and($item->fresh()->status)->toBe(LvRutaDiaItem::STATUS_DERIVADO);
+});
+
 it('derivar tipo otros exige causa otros texto no null ni string vacio', function (?string $texto): void {
     expect(fn () => app(DerivacionService::class)->derivar(
         LvRutaDiaItem::factory()->create(),
