@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Asignacion;
 use App\Models\Averia;
 use App\Models\LvAveriaIcca;
+use App\Models\LvDerivacion;
 use App\Models\LvRutaDia;
 use App\Models\LvRutaDiaItem;
 use App\Models\Piv;
@@ -128,4 +129,48 @@ it('tecnico inactivo no puede acceder', function (): void {
     $this->actingAs($user)
         ->get(route('tecnico.dashboard'))
         ->assertRedirect(route('tecnico.login'));
+});
+
+it('dashboard tecnico no muestra items derivados', function (): void {
+    $user = dashboardRutaTecnicoUser(78207);
+    $ruta = LvRutaDia::factory()->create(['tecnico_id' => 78207, 'fecha' => now('Europe/Madrid')->toDateString()]);
+    $pivPendiente = Piv::factory()->create(['parada_cod' => 'VISIBLE-01']);
+    $pivDerivado = Piv::factory()->create(['parada_cod' => 'DERIVADO-01']);
+    $averiaPendiente = LvAveriaIcca::factory()->create(['piv_id' => $pivPendiente->piv_id]);
+    $averiaDerivada = LvAveriaIcca::factory()->create(['piv_id' => $pivDerivado->piv_id]);
+
+    LvRutaDiaItem::factory()->create([
+        'ruta_dia_id' => $ruta->id,
+        'lv_averia_icca_id' => $averiaPendiente->id,
+        'status' => LvRutaDiaItem::STATUS_PENDIENTE,
+    ]);
+    LvRutaDiaItem::factory()->create([
+        'ruta_dia_id' => $ruta->id,
+        'lv_averia_icca_id' => $averiaDerivada->id,
+        'status' => LvRutaDiaItem::STATUS_DERIVADO,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('tecnico.dashboard'))
+        ->assertOk()
+        ->assertSeeText('VISIBLE-01')
+        ->assertDontSeeText('DERIVADO-01');
+});
+
+it('dashboard tecnico muestra pendiente aunque tenga derivacion cerrada previa', function (): void {
+    $user = dashboardRutaTecnicoUser(78208);
+    $ruta = LvRutaDia::factory()->create(['tecnico_id' => 78208, 'fecha' => now('Europe/Madrid')->toDateString()]);
+    $piv = Piv::factory()->create(['parada_cod' => 'DEVUELTO-01']);
+    $averia = LvAveriaIcca::factory()->create(['piv_id' => $piv->piv_id]);
+    $item = LvRutaDiaItem::factory()->create([
+        'ruta_dia_id' => $ruta->id,
+        'lv_averia_icca_id' => $averia->id,
+        'status' => LvRutaDiaItem::STATUS_PENDIENTE,
+    ]);
+    LvDerivacion::factory()->cerrada(LvDerivacion::STATUS_DEVUELTO_A_RUTA)->create(['lv_ruta_dia_item_id' => $item->id]);
+
+    $this->actingAs($user)
+        ->get(route('tecnico.dashboard'))
+        ->assertOk()
+        ->assertSeeText('DEVUELTO-01');
 });

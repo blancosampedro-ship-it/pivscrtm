@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\LvRutaDiaResource\RelationManagers;
 
+use App\Filament\Resources\LvDerivacionResource;
 use App\Filament\Resources\PivResource;
 use App\Models\LvRutaDia;
 use App\Models\LvRutaDiaItem;
 use App\Models\Modulo;
+use App\Services\DerivacionService;
 use App\Services\PlanificadorDelDiaService;
+use DomainException;
 use Filament\Forms;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Support\Enums\ActionSize;
 use Filament\Tables;
@@ -39,6 +43,7 @@ final class ItemsRelationManager extends RelationManager
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
                 'averiaIcca.piv:piv_id,parada_cod,municipio',
                 'revisionPendiente.piv:piv_id,parada_cod,municipio',
+                'derivacionAbierta',
             ]))
             ->reorderable('orden')
             ->defaultSort('orden')
@@ -99,6 +104,23 @@ final class ItemsRelationManager extends RelationManager
             ])
             ->actionsPosition(ActionsPosition::AfterColumns)
             ->actions([
+                Tables\Actions\Action::make('derivar')
+                    ->label('Derivar')
+                    ->icon('heroicon-o-arrow-path-rounded-square')
+                    ->color('warning')
+                    ->size(ActionSize::Small)
+                    ->visible(fn (LvRutaDiaItem $record): bool => in_array($record->status, [LvRutaDiaItem::STATUS_PENDIENTE, LvRutaDiaItem::STATUS_CERRADO], true)
+                        && ! $record->tieneDerivacionAbierta())
+                    ->form(LvDerivacionResource::derivacionFormSchema())
+                    ->action(function (LvRutaDiaItem $record, array $data): void {
+                        try {
+                            app(DerivacionService::class)->derivar($record, $data, auth()->user());
+
+                            Notification::make()->title('Item derivado')->success()->send();
+                        } catch (DomainException $exception) {
+                            Notification::make()->title($exception->getMessage())->danger()->send();
+                        }
+                    }),
                 Tables\Actions\Action::make('verPanel')
                     ->label('Ver panel')
                     ->icon('heroicon-m-arrow-top-right-on-square')
@@ -299,6 +321,7 @@ final class ItemsRelationManager extends RelationManager
             LvRutaDiaItem::STATUS_EN_PROGRESO => 'En progreso',
             LvRutaDiaItem::STATUS_CERRADO => 'Cerrado',
             LvRutaDiaItem::STATUS_NO_RESUELTO => 'No resuelto',
+            LvRutaDiaItem::STATUS_DERIVADO => 'Derivado',
             default => $status,
         };
     }
@@ -310,6 +333,7 @@ final class ItemsRelationManager extends RelationManager
             LvRutaDiaItem::STATUS_EN_PROGRESO => 'warning',
             LvRutaDiaItem::STATUS_CERRADO => 'success',
             LvRutaDiaItem::STATUS_NO_RESUELTO => 'danger',
+            LvRutaDiaItem::STATUS_DERIVADO => 'warning',
             default => 'gray',
         };
     }
