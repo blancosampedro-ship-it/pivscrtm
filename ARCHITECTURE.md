@@ -400,13 +400,15 @@ Actualiza Excel resumen mensual
 - `id`, `sgip_id` (Id en CSV, ej "0028078"), `panel_id_sgip` (Resumen del CSV, ej "PANEL 18484"), `piv_id` (resolved match con `parada_cod`, nullable si no se encuentra, si es ambiguo por sufijos A/B o si no hay match), `categoria` (comunicación / apagado / tiempos / audio / otras), `descripcion` text, `notas` mediumText, `estado_externo` (CSV column "Estado", ej "asignada"), `asignada_a` (CSV column, ej "SGIP_winfin"), `activa` boolean, `fecha_import`, `archivo_origen` (filename), `imported_by_user_id` FK `lv_users`, `marked_inactive_at`, timestamps.
 - UNIQUE en `sgip_id` (idempotencia).
 
-**`lv_ruta_dia`** (Bloque 12e/f, planificado):
+**`lv_ruta_dia`** (Bloque 12e/f/g, implementado):
 - Una fila por (técnico, fecha). Contiene la ruta del día.
-- Composición: `lv_ruta_dia_item` con N filas que apuntan a `lv_averia_icca` o `lv_revision_pendiente`, cada una con `orden` (sequence en la ruta).
+- Composición: `lv_ruta_dia_item` con N filas que apuntan a `lv_averia_icca` o `lv_revision_pendiente`, cada una con `orden` (sequence en la ruta). Status item: `pendiente`, `en_progreso`, `cerrado`, `no_resuelto`, `derivado`.
 
-**`lv_derivacion`** (Bloque 12h, planificado):
-- Trazabilidad de averías derivadas a Clear Channel / industrial / etc.
-- `id`, `lv_averia_icca_id`, `destino` enum (`clear_channel`, `industrial_software`, `otro`), `motivo`, `fecha_derivacion`, `derivada_by_user_id`, timestamps.
+**`lv_derivacion`** (Bloque 12h, implementado):
+- Cola administrativa de items de ruta bloqueados temporalmente por tercero, material, autorización u otra causa estructurada.
+- FK física a `lv_ruta_dia_item` con cascade on delete. FKs a `lv_users` para `derivado_por_user_id` y `resuelto_por_user_id` con set null on delete.
+- Catálogos separados: `tipo_causa` (`sin_tension`, `panel_offline`, `incidencia_software`, `vandalismo`, `panel_inaccesible`, `material_no_disponible`, `requiere_autorizacion`, `requiere_apoyo_tercero`, `otros`) y `actor_responsable` (`clear_channel`, `industrial`, `crtm`, `ayuntamiento`, `operador_sim`, `proveedor`, `interno_winfin`, `otros`).
+- Status: `pendiente_tercero`, `en_curso`, `resuelto_externo`, `devuelto_a_ruta`, `cancelada`. Un item con derivación abierta pasa a `lv_ruta_dia_item.status=derivado` y sale del dashboard técnico; si se devuelve/cancela, vuelve a `pendiente`.
 
 ### 13.4 Flujo de datos: import → planificador → ruta → cierre → reporte
 
@@ -429,7 +431,7 @@ Actualiza Excel resumen mensual
 
 5. **PWA técnico ruta del día (Bloque 12g)**: PWA muestra lista mixta agrupada por panel. Técnico cierra cada uno con causa si no resuelve.
 
-6. **Cierre admin (Bloque 12h)**: admin revisa lo cerrado por técnico. Para `lv_averia_icca` activas: opción "Cerrar en SGIP" (admin la cierra externamente y aquí marcamos `activa=false` con motivo) o "Derivar" → crea `lv_derivacion`.
+6. **Derivaciones admin (Bloque 12h)**: admin crea derivaciones desde `Derivaciones` o desde items de una ruta. `DerivacionService` valida catálogos, evita más de una derivación abierta por item y gestiona cierres: resolver externamente mantiene el item en `derivado`; devolver a ruta/cancelar lo devuelve a `pendiente`.
 
 7. **Reporte mensual (Bloque 12i)**: export Excel/PDF con resumen contractual del mes. Reemplaza el `MAYO 2026.xlsx` actual.
 

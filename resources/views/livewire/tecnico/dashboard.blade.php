@@ -2,7 +2,9 @@
 
 use App\Models\Asignacion;
 use App\Models\LvRutaDia;
+use App\Models\LvRutaDiaItem;
 use App\Models\Tecnico;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 use Livewire\Volt\Component;
 use function Livewire\Volt\layout;
@@ -26,6 +28,7 @@ new class extends Component {
             ->whereDate('fecha', now('Europe/Madrid')->format('Y-m-d'))
             ->whereIn('status', [LvRutaDia::STATUS_PLANIFICADA, LvRutaDia::STATUS_EN_PROGRESO])
             ->with([
+                'items' => fn (HasMany $query): HasMany => $query->where('status', '!=', LvRutaDiaItem::STATUS_DERIVADO),
                 'items.averiaIcca.piv.municipioModulo',
                 'items.revisionPendiente.piv.municipioModulo',
                 'items.revisionPendiente.carryOverOrigen',
