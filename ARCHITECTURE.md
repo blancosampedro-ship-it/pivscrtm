@@ -410,6 +410,11 @@ Actualiza Excel resumen mensual
 - Catálogos separados: `tipo_causa` (`sin_tension`, `panel_offline`, `incidencia_software`, `vandalismo`, `panel_inaccesible`, `material_no_disponible`, `requiere_autorizacion`, `requiere_apoyo_tercero`, `otros`) y `actor_responsable` (`clear_channel`, `industrial`, `crtm`, `ayuntamiento`, `operador_sim`, `proveedor`, `interno_winfin`, `otros`).
 - Status: `pendiente_tercero`, `en_curso`, `resuelto_externo`, `devuelto_a_ruta`, `cancelada`. Un item con derivación abierta pasa a `lv_ruta_dia_item.status=derivado` y sale del dashboard técnico; si se devuelve/cancela, vuelve a `pendiente`.
 
+**`lv_reporte_periodico`** (Bloque 12i, implementado):
+- Metadatos de reportes contractuales mensuales/anuales generados para CRTM: `tipo`, `anyo`, `mes`, `generated_at`, `generated_by_user_id`, `pdf_path`, `xlsx_path`, `metadata_json`.
+- UNIQUE lógico por periodo (`tipo`, `anyo`, `mes`): regenerar reemplaza archivos físicos y actualiza la misma fila via `ReportePeriodicoService::generarMensual()` / `generarAnual()`.
+- Los archivos viven en `storage/app/reportes-periodicos/{anyo}/{tipo}/`. `metadata_json` guarda el snapshot literal de KPIs calculados para audit trail aunque cambien los datos origen.
+
 ### 13.4 Flujo de datos: import → planificador → ruta → cierre → reporte
 
 1. **Import preventivo (mensual)**: `lv:generate-revision-pendiente-monthly` día 1 06:00 crea ~484 filas pendientes. Bloque 12c integra las 5 rutas oficiales del Excel como fuente operativa, pero no distribuye fechas automáticamente; `fecha_planificada` la decide administración desde "Decisiones del día" o un bloque posterior de calendario.
@@ -433,7 +438,7 @@ Actualiza Excel resumen mensual
 
 6. **Derivaciones admin (Bloque 12h)**: admin crea derivaciones desde `Derivaciones` o desde items de una ruta. `DerivacionService` valida catálogos, evita más de una derivación abierta por item y gestiona cierres: resolver externamente mantiene el item en `derivado`; devolver a ruta/cancelar lo devuelve a `pendiente`.
 
-7. **Reporte mensual (Bloque 12i)**: export Excel/PDF con resumen contractual del mes. Reemplaza el `MAYO 2026.xlsx` actual.
+7. **Reporte periódico contractual (Bloque 12i)**: `ReportePeriodicoService::calcularKpis()` calcula en modo read-only el snapshot mensual/anual con volumen, resolución, derivaciones, cobertura territorial y detalle de paneles. `generarMensual()` / `generarAnual()` renderizan siempre PDF (DomPDF) + Excel (PhpSpreadsheet) y persisten metadata en `lv_reporte_periodico`. Filament expone `Planificación → Reportes` para generar, descargar, regenerar o eliminar reportes. El reporte no exporta campos RGPD de técnicos; solo usa el usuario admin generador para audit trail.
 
 ### 13.5 Coexistencia con sistemas externos durante migración
 
@@ -451,3 +456,4 @@ Durante la implementación del módulo 12 (semanas posteriores al 5 may 2026):
 - **CSV format drift**: si SGIP cambia columnas del export, el `AveriaIccaImportService` debe degradar elegante (warn + skip rows malformadas, no crash).
 - **Escalado averías inactivas**: `lv_averia_icca` con `activa=false` crece monótono. Tras 1 año puede haber 10000+ filas. Index en `(activa, fecha_import)` obligatorio. Cleanup retroactivo (DELETE inactivas > N meses) decisión separada.
 - **Optimizador ruta sin lat/lng**: el algoritmo Bloque 12e usa solo `km_desde_ciempozuelos` + `ruta_id`. Resultado subóptimo geográficamente pero suficiente para la operativa actual. Si se requiere optimización real (TSP), Bloque 02f (geocoding paneles) precondición.
+- **Reportes PDF/Excel**: DomPDF no soporta bien CSS moderno, por lo que la plantilla 12i usa tablas/CSS print-friendly. PhpSpreadsheet puede consumir memoria si un anual crece por encima de decenas de miles de filas; el service fija `memory_limit=512M` y el riesgo se revisará si CRTM pide históricos extensos.
