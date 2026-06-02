@@ -164,11 +164,41 @@ class AveriaResource extends Resource
             ])
             ->defaultSort('fecha', 'desc')
             ->filters([
-                Tables\Filters\SelectFilter::make('status')
-                    ->options([1 => 'Abierta', 2 => 'Cerrada', 4 => 'Status 4'])
-                    ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
-                        ? $query->where('status', $data['value'])
-                        : $query),
+                Tables\Filters\SelectFilter::make('estado')
+                    ->label('Estado')
+                    ->options([
+                        'pendientes' => 'Pendientes (abiertas)',
+                        'cerradas' => 'Cerradas',
+                        'todas' => 'Todas',
+                    ])
+                    ->default('pendientes')
+                    ->query(function (Builder $query, array $data): Builder {
+                        $v = $data['value'] ?? 'pendientes';
+                        if ($v === '') {
+                            $v = 'pendientes';
+                        }
+
+                        return match ($v) {
+                            'cerradas' => $query->where('status', 2),
+                            'todas' => $query,
+                            default => $query->where('status', '!=', 2), // pendientes = no cerradas
+                        };
+                    }),
+                Tables\Filters\SelectFilter::make('periodo')
+                    ->label('Periodo')
+                    ->options([
+                        'mes' => 'Mes en curso',
+                        'anio' => 'Año en curso',
+                        'todo' => 'Todo el histórico',
+                    ])
+                    ->default('todo')
+                    ->query(function (Builder $query, array $data): Builder {
+                        return match ($data['value'] ?? 'todo') {
+                            'mes' => $query->whereYear('fecha', now()->year)->whereMonth('fecha', now()->month),
+                            'anio' => $query->whereYear('fecha', now()->year),
+                            default => $query,
+                        };
+                    }),
                 Tables\Filters\SelectFilter::make('tecnico_id')
                     ->label('Técnico')
                     ->relationship('tecnico', 'nombre_completo')

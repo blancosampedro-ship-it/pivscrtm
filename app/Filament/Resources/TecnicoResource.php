@@ -170,6 +170,27 @@ class TecnicoResource extends Resource
                     ->color(fn ($state) => $state == 1 ? 'success' : 'gray'),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('operatividad')
+                    ->label('Operatividad')
+                    ->options([
+                        'operativos' => 'Operativos (activos 60 días)',
+                        'todos' => 'Todos',
+                        'sin_actividad' => 'Sin actividad reciente',
+                    ])
+                    ->default('operativos')
+                    ->query(function (Builder $query, array $data): Builder {
+                        $v = $data['value'] ?? 'operativos';
+                        if ($v === '') {
+                            $v = 'operativos';
+                        }
+                        $desde = now()->subDays(60)->toDateString();
+
+                        return match ($v) {
+                            'todos' => $query,
+                            'sin_actividad' => $query->whereDoesntHave('asignaciones', fn (Builder $q) => $q->where('fecha', '>=', $desde)),
+                            default => $query->whereHas('asignaciones', fn (Builder $q) => $q->where('fecha', '>=', $desde)),
+                        };
+                    }),
                 Tables\Filters\TernaryFilter::make('status')
                     ->label('Status')
                     ->placeholder('Todos')

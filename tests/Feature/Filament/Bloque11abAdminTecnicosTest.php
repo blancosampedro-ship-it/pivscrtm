@@ -109,6 +109,7 @@ it('admin_can_deactivate_tecnico', function (): void {
     ]);
 
     Livewire::test(Pages\ListTecnicos::class)
+        ->filterTable('operatividad', 'todos') // ver todos los técnicos, no solo los operativos
         ->callTableAction('deactivate', $tecnico);
 
     $tecnico->refresh();
@@ -122,6 +123,7 @@ it('admin_can_reactivate_inactive_tecnico', function (): void {
     ]);
 
     Livewire::test(Pages\ListTecnicos::class)
+        ->filterTable('operatividad', 'todos') // ver todos los técnicos, no solo los operativos
         ->callTableAction('activate', $tecnico);
 
     $tecnico->refresh();
