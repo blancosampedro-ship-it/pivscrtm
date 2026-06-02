@@ -83,16 +83,25 @@ it('ruta completada no acepta cambios de cabecera desde edit form', function ():
 });
 
 it('bulk action cancelar cambia status', function (): void {
-    $rutas = LvRutaDia::factory()->count(2)->sequence(
-        ['fecha' => '2026-05-06'],
-        ['fecha' => '2026-05-07'],
-    )->create();
+    // El filtro "mes" de la tabla aplica por defecto el año/mes actuales (ver LvRutaDiaResource::table),
+    // así que las rutas deben caer en ese mes para ser visibles a la bulk action. Fijamos el reloj para
+    // que el test sea determinista y no dependa de la fecha real (mismo patrón que el test del nav badge).
+    CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-05-06 10:00:00', 'Europe/Madrid'));
 
-    Livewire::test(ListLvRutaDias::class)
-        ->callTableBulkAction('cancelar', $rutas)
-        ->assertHasNoTableBulkActionErrors();
+    try {
+        $rutas = LvRutaDia::factory()->count(2)->sequence(
+            ['fecha' => '2026-05-06'],
+            ['fecha' => '2026-05-07'],
+        )->create();
 
-    $rutas->each(fn (LvRutaDia $ruta) => expect($ruta->fresh()->status)->toBe(LvRutaDia::STATUS_CANCELADA));
+        Livewire::test(ListLvRutaDias::class)
+            ->callTableBulkAction('cancelar', $rutas)
+            ->assertHasNoTableBulkActionErrors();
+
+        $rutas->each(fn (LvRutaDia $ruta) => expect($ruta->fresh()->status)->toBe(LvRutaDia::STATUS_CANCELADA));
+    } finally {
+        CarbonImmutable::setTestNow();
+    }
 });
 
 it('relation manager permite eliminar item sin tocar averia origen', function (): void {
