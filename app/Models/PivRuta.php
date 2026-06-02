@@ -12,8 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * Ruta operativa Winfin para planificación preventiva.
  *
- * Las rutas oficiales vienen del Excel WINFIN_Rutas_PIV_Madrid.xlsx.
- * Los paneles fuera del Excel quedan sin ruta y se gestionan ad-hoc.
+ * Las 9 zonas oficiales (puntos cardinales) vienen del Excel "rutas e items.xlsx" (hoja "Rutas").
+ * Ver PivRutaSeeder. Los paneles fuera del Excel quedan sin ruta y se gestionan ad-hoc.
  */
 final class PivRuta extends Model
 {
@@ -22,22 +22,34 @@ final class PivRuta extends Model
 
     protected $table = 'lv_piv_ruta';
 
-    public const COD_ROSA_NO = 'ROSA-NO';
+    public const COD_CENTRO = 'CENTRO';
 
-    public const COD_ROSA_E = 'ROSA-E';
+    public const COD_NORTE = 'NORTE';
 
-    public const COD_VERDE = 'VERDE';
+    public const COD_NORESTE = 'NORESTE';
 
-    public const COD_AZUL = 'AZUL';
+    public const COD_ESTE = 'ESTE';
 
-    public const COD_AMARILLO = 'AMARILLO';
+    public const COD_SURESTE = 'SURESTE';
+
+    public const COD_SUR = 'SUR';
+
+    public const COD_SUROESTE = 'SUROESTE';
+
+    public const COD_OESTE = 'OESTE';
+
+    public const COD_NOROESTE = 'NOROESTE';
 
     public const CODIGOS = [
-        self::COD_ROSA_NO,
-        self::COD_ROSA_E,
-        self::COD_VERDE,
-        self::COD_AZUL,
-        self::COD_AMARILLO,
+        self::COD_CENTRO,
+        self::COD_NORTE,
+        self::COD_NORESTE,
+        self::COD_ESTE,
+        self::COD_SURESTE,
+        self::COD_SUR,
+        self::COD_SUROESTE,
+        self::COD_OESTE,
+        self::COD_NOROESTE,
     ];
 
     protected $fillable = [
