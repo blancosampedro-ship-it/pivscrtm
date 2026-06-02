@@ -12,116 +12,125 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-it('seeder crea las 5 rutas con códigos correctos', function (): void {
+it('seeder crea las 9 zonas con códigos correctos', function (): void {
     (new PivRutaSeeder)->run();
 
-    expect(PivRuta::count())->toBe(5);
+    expect(PivRuta::count())->toBe(9);
     expect(PivRuta::pluck('codigo')->sort()->values()->toArray())
-        ->toBe(['AMARILLO', 'AZUL', 'ROSA-E', 'ROSA-NO', 'VERDE']);
+        ->toBe(['CENTRO', 'ESTE', 'NORESTE', 'NOROESTE', 'NORTE', 'OESTE', 'SUR', 'SURESTE', 'SUROESTE']);
 });
 
 it('seeder es idempotente y no duplica rutas ni municipios', function (): void {
-    Modulo::factory()->municipio('Aranjuez')->create();
+    Modulo::factory()->municipio('Madrid')->create();
 
     (new PivRutaSeeder)->run();
     (new PivRutaSeeder)->run();
 
-    expect(PivRuta::count())->toBe(5);
+    expect(PivRuta::count())->toBe(9);
     expect(PivRutaMunicipio::count())->toBe(1);
 });
 
-it('seeder asigna municipios solo si existen en modulo', function (): void {
-    Modulo::factory()->municipio('Aranjuez')->create();
+it('asigna cada municipio a su zona correcta', function (): void {
+    Modulo::factory()->municipio('Madrid')->create(['modulo_id' => 90001]);
+    Modulo::factory()->municipio('Coslada')->create(['modulo_id' => 90002]);
+    Modulo::factory()->municipio('Brunete')->create(['modulo_id' => 90003]);
+    Modulo::factory()->municipio('Getafe')->create(['modulo_id' => 90004]);
 
     (new PivRutaSeeder)->run();
 
-    expect(PivRutaMunicipio::count())->toBe(1);
-    expect(PivRutaMunicipio::firstOrFail()->ruta->codigo)->toBe(PivRuta::COD_AMARILLO);
+    $byModulo = fn (int $id): string => PivRutaMunicipio::where('municipio_modulo_id', $id)->firstOrFail()->ruta->codigo;
+
+    expect($byModulo(90001))->toBe(PivRuta::COD_CENTRO);
+    expect($byModulo(90002))->toBe(PivRuta::COD_ESTE);
+    expect($byModulo(90003))->toBe(PivRuta::COD_SUROESTE);
+    expect($byModulo(90004))->toBe(PivRuta::COD_SUR);
 });
 
-it('seeder guarda km desde Ciempozuelos del Excel', function (): void {
-    Modulo::factory()->municipio('Campo Real')->create(['modulo_id' => 91001]);
+it('km_desde_ciempozuelos es null en el esquema nuevo', function (): void {
+    Modulo::factory()->municipio('Madrid')->create();
 
     (new PivRutaSeeder)->run();
 
-    $assignment = PivRutaMunicipio::firstOrFail();
-    expect($assignment->km_desde_ciempozuelos)->toBe(40);
-    expect($assignment->ruta->codigo)->toBe(PivRuta::COD_ROSA_E);
+    expect(PivRutaMunicipio::firstOrFail()->km_desde_ciempozuelos)->toBeNull();
 });
 
-it('seeder actualiza ruta y km si la asignacion ya existia', function (): void {
-    $municipio = Modulo::factory()->municipio('Campo Real')->create(['modulo_id' => 91002]);
-    $rutaVieja = PivRuta::factory()->create(['codigo' => 'OLD']);
+it('elimina rutas y asignaciones obsoletas (esquema viejo)', function (): void {
+    // Ruta vieja + su asignación a un municipio que no está en la lista canónica.
+    $vieja = PivRuta::factory()->create(['codigo' => 'ROSA-NO']);
+    $foraneo = Modulo::factory()->municipio('Municipio Inexistente XYZ')->create(['modulo_id' => 91234]);
     PivRutaMunicipio::factory()->create([
-        'ruta_id' => $rutaVieja->id,
-        'municipio_modulo_id' => $municipio->modulo_id,
+        'ruta_id' => $vieja->id,
+        'municipio_modulo_id' => $foraneo->modulo_id,
         'km_desde_ciempozuelos' => 999,
     ]);
 
     (new PivRutaSeeder)->run();
 
-    $assignment = PivRutaMunicipio::where('municipio_modulo_id', $municipio->modulo_id)->firstOrFail();
-    expect($assignment->ruta->codigo)->toBe(PivRuta::COD_ROSA_E);
-    expect($assignment->km_desde_ciempozuelos)->toBe(40);
-});
-
-it('seeder normaliza Las Rozas de Madrid a Rozas de Madrid Las', function (): void {
-    Modulo::factory()->municipio('Rozas de Madrid, Las')->create();
-
-    (new PivRutaSeeder)->run();
-
-    expect(PivRutaMunicipio::count())->toBe(1);
-    expect(PivRutaMunicipio::firstOrFail()->ruta->codigo)->toBe(PivRuta::COD_ROSA_NO);
-});
-
-it('seeder normaliza Buitrago del Lozoya a Buitrago de Lozoya', function (): void {
-    Modulo::factory()->municipio('Buitrago de Lozoya')->create();
-
-    (new PivRutaSeeder)->run();
-
-    expect(PivRutaMunicipio::count())->toBe(1);
-    expect(PivRutaMunicipio::firstOrFail()->ruta->codigo)->toBe(PivRuta::COD_VERDE);
-});
-
-it('seeder salta municipios no presentes en modulo', function (): void {
-    (new PivRutaSeeder)->run();
-
-    expect(PivRuta::count())->toBe(5);
+    expect(PivRuta::where('codigo', 'ROSA-NO')->exists())->toBeFalse();
+    expect(PivRuta::count())->toBe(9);
+    // La asignación huérfana (a un municipio no canónico) se elimina.
+    expect(PivRutaMunicipio::where('municipio_modulo_id', 91234)->exists())->toBeFalse();
     expect(PivRutaMunicipio::count())->toBe(0);
 });
 
-it('municipios const contiene 81 filas y distribucion oficial por ruta', function (): void {
-    expect(PivRutaSeeder::MUNICIPIOS)->toHaveCount(81);
+it('resuelve typos del catálogo legacy vía alias', function (): void {
+    // Grafías exactas como aparecen (mal escritas) en el catálogo modulo de producción.
+    Modulo::factory()->municipio('Guadalix de laSierra')->create(['modulo_id' => 92001]);
+    Modulo::factory()->municipio('San Fernando de Henarres')->create(['modulo_id' => 92002]);
+    Modulo::factory()->municipio('Valdeolmos-Alapardo')->create(['modulo_id' => 92003]);
+    Modulo::factory()->municipio('Fuente del sanz de Jarama')->create(['modulo_id' => 92004]);
+
+    (new PivRutaSeeder)->run();
+
+    $byModulo = fn (int $id): string => PivRutaMunicipio::where('municipio_modulo_id', $id)->firstOrFail()->ruta->codigo;
+
+    expect($byModulo(92001))->toBe(PivRuta::COD_NORTE);
+    expect($byModulo(92002))->toBe(PivRuta::COD_ESTE);
+    expect($byModulo(92003))->toBe(PivRuta::COD_NORESTE);
+    expect($byModulo(92004))->toBe(PivRuta::COD_NORESTE);
+});
+
+it('salta municipios no presentes en el catálogo modulo', function (): void {
+    (new PivRutaSeeder)->run();
+
+    expect(PivRuta::count())->toBe(9);
+    expect(PivRutaMunicipio::count())->toBe(0);
+});
+
+it('MUNICIPIOS const tiene 101 filas y la distribución oficial por zona', function (): void {
+    expect(PivRutaSeeder::MUNICIPIOS)->toHaveCount(101);
 
     $counts = collect(PivRutaSeeder::MUNICIPIOS)
         ->countBy(fn (array $row): string => $row[1])
         ->all();
 
     expect($counts)->toBe([
-        PivRuta::COD_ROSA_NO => 18,
-        PivRuta::COD_ROSA_E => 11,
-        PivRuta::COD_VERDE => 20,
-        PivRuta::COD_AZUL => 15,
-        PivRuta::COD_AMARILLO => 17,
+        PivRuta::COD_CENTRO => 1,
+        PivRuta::COD_NORTE => 20,
+        PivRuta::COD_NORESTE => 11,
+        PivRuta::COD_ESTE => 14,
+        PivRuta::COD_SURESTE => 10,
+        PivRuta::COD_SUR => 10,
+        PivRuta::COD_SUROESTE => 11,
+        PivRuta::COD_OESTE => 7,
+        PivRuta::COD_NOROESTE => 17,
     ]);
 });
 
-it('rutas const conserva km medio oficial', function (): void {
-    $kmMedio = collect(PivRutaSeeder::RUTAS)->pluck('km_medio', 'codigo')->all();
+it('RUTAS const define 9 zonas con km_medio null', function (): void {
+    expect(PivRutaSeeder::RUTAS)->toHaveCount(9);
 
-    expect($kmMedio)->toBe([
-        PivRuta::COD_ROSA_NO => 80,
-        PivRuta::COD_ROSA_E => 51,
-        PivRuta::COD_VERDE => 85,
-        PivRuta::COD_AZUL => 84,
-        PivRuta::COD_AMARILLO => 36,
-    ]);
+    $kmMedio = collect(PivRutaSeeder::RUTAS)->pluck('km_medio', 'codigo')->all();
+    foreach (PivRuta::CODIGOS as $codigo) {
+        expect($kmMedio)->toHaveKey($codigo);
+        expect($kmMedio[$codigo])->toBeNull();
+    }
 });
 
 it('DatabaseSeeder llama a PivRutaSeeder', function (): void {
     $this->seed(DatabaseSeeder::class);
 
-    expect(PivRuta::count())->toBe(5);
+    expect(PivRuta::count())->toBe(9);
 });
 
 it('unique codigo previene duplicados', function (): void {
@@ -148,12 +157,16 @@ it('relacion PivRuta municipios devuelve PivRutaMunicipio collection', function 
     expect($ruta->municipios->first())->toBeInstanceOf(PivRutaMunicipio::class);
 });
 
-it('codigos const tiene los 5 códigos oficiales', function (): void {
+it('CODIGOS const tiene los 9 códigos oficiales', function (): void {
     expect(PivRuta::CODIGOS)->toBe([
-        PivRuta::COD_ROSA_NO,
-        PivRuta::COD_ROSA_E,
-        PivRuta::COD_VERDE,
-        PivRuta::COD_AZUL,
-        PivRuta::COD_AMARILLO,
+        PivRuta::COD_CENTRO,
+        PivRuta::COD_NORTE,
+        PivRuta::COD_NORESTE,
+        PivRuta::COD_ESTE,
+        PivRuta::COD_SURESTE,
+        PivRuta::COD_SUR,
+        PivRuta::COD_SUROESTE,
+        PivRuta::COD_OESTE,
+        PivRuta::COD_NOROESTE,
     ]);
 });

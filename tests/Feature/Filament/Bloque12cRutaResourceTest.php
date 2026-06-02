@@ -48,15 +48,15 @@ it('pivruta tables exist with correct columns', function (): void {
 
 it('admin can view rutas list in filament', function (): void {
     PivRuta::factory()->create([
-        'codigo' => PivRuta::COD_ROSA_E,
-        'nombre' => 'Rosa Este',
-        'color_hint' => '#D02670',
-        'sort_order' => 2,
+        'codigo' => PivRuta::COD_ESTE,
+        'nombre' => 'Ruta Este',
+        'color_hint' => '#8A3FFC',
+        'sort_order' => 4,
     ]);
 
     $this->get(PivRutaResource::getUrl('index'))
         ->assertOk()
-        ->assertSee('Rosa Este');
+        ->assertSee('Ruta Este');
 
     expect(PivRutaResource::getSlug())->toBe('rutas-operativas');
     expect(PivRutaResource::getNavigationLabel())->toBe('Rutas');
@@ -124,16 +124,20 @@ it('admin can assign new municipio to ruta via relation manager', function (): v
     expect($ruta->refresh()->municipios()->count())->toBe(1);
 });
 
-it('pivruta seeder creates five official rutas in sort order', function (): void {
+it('pivruta seeder creates nine official zonas in sort order', function (): void {
     Artisan::call('db:seed', ['--class' => PivRutaSeeder::class]);
 
-    expect(PivRuta::count())->toBe(5);
+    expect(PivRuta::count())->toBe(9);
     expect(PivRuta::orderBy('sort_order')->pluck('codigo')->all())->toBe([
-        PivRuta::COD_ROSA_NO,
-        PivRuta::COD_ROSA_E,
-        PivRuta::COD_VERDE,
-        PivRuta::COD_AZUL,
-        PivRuta::COD_AMARILLO,
+        PivRuta::COD_CENTRO,
+        PivRuta::COD_NORTE,
+        PivRuta::COD_NORESTE,
+        PivRuta::COD_ESTE,
+        PivRuta::COD_SURESTE,
+        PivRuta::COD_SUR,
+        PivRuta::COD_SUROESTE,
+        PivRuta::COD_OESTE,
+        PivRuta::COD_NOROESTE,
     ]);
 });
 
