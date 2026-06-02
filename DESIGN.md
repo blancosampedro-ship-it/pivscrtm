@@ -94,20 +94,31 @@ Activar tabular-nums por defecto en datos numéricos:
 }
 ```
 
-### Wordmark "Winfin *PIV*" — excepción documentada
+### Marca: FleetCore (producto) by Winfin (empresa) — *actualizado 2026-06-02*
 
-El wordmark conserva Instrument Serif italic en la "f" como decisión deliberada de identidad de marca, mezclada con IBM Plex Sans 600 en el resto del logo. Es la **única** ocurrencia de serif en toda la app. Justificación: pequeño guiño editorial que diferencia a Winfin de la pureza corporativa total de Carbon, sin comprometer la coherencia del sistema (un solo elemento, un solo lugar — sidebar header y top bar).
+> **Cambio de marca (2026-06-02, ver §12 log).** El producto pasa a llamarse **FleetCore** (CMMS),
+> desarrollado por **Winfin** (la empresa). Se sustituye el wordmark de texto "Winfin *PIV*" por los
+> **logotipos oficiales**. El wordmark serif legacy queda **retirado** (ya no se usa el guiño Instrument
+> Serif; `.brand em` se conserva en CSS solo por compatibilidad).
 
-Implementación:
+**Logotipos y uso:**
 
-```html
-<span class="brand">Win<em>f</em>in <strong>PIV</strong></span>
-```
+| Marca | Asset | Uso |
+|---|---|---|
+| **FleetCore** (color: flecha pincel cian + script negro) | `images/brand/fleetcore-logo.png` (claro), `fleetcore-logo-white.png` (oscuro) — PNG transparente ~100 KB (el SVG oficial pesa 1,37 MB, no apto para web) | **Login** a color (momento de marca); favicon/PWA (icono flecha). |
+| **FleetCore** desaturado (mono) | mismo logo, `filter: grayscale(1)` en `.fi-sidebar/.fi-topbar .fi-logo` | **Chrome del panel**: gris, para no romper la densidad Carbon. |
+| **FleetCore** wordmark blanco | `images/brand/fleetcore-wordmark-white.png` | Header del PWA técnico (fondo Gray 100). |
+| **Winfin** (icono circuito + "Soluciones Embarcadas", monocromo) | `images/brand/winfin.png` (negro), `winfin-white.png` (blanco) | "Una solución de **Winfin**" bajo el login. |
 
-```css
-.brand            { font-family: var(--font-sans); font-weight: 600; letter-spacing: -0.005em; }
-.brand em         { font-family: var(--font-serif); font-style: italic; font-weight: 400; }
-.brand strong     { font-weight: 600; }
+**Regla de color:** el **cian de FleetCore vive SOLO en el logotipo** (login/PWA). El acento de la app
+sigue siendo **Blue 60 `#0F62FE`** en todo lo interactivo. No introducir cian en componentes.
+
+El logo FleetCore (estilo pincel/manuscrito) es deliberadamente NO-Carbon; por eso se confina a
+momentos de marca (login, splash, icono) y se desatura en la chrome densa del panel.
+
+```blade
+{{-- panel + login: Filament brandLogo (color) → desaturado en topbar/sidebar vía theme.css --}}
+{{-- "by Winfin" en login: <x-brand.by-winfin /> (render hook AUTH_LOGIN_FORM_AFTER) --}}
 ```
 
 ### Anti-patrones tipográficos (NUNCA)
@@ -437,3 +448,4 @@ Inspiración: la app vieja `winfin.es/paneles.php?action=edit&id=N#tabs-3` ya us
 | 2026-05-02 | AsignacionResource restaurado al sidebar (grupo "Operaciones") | Bloque 08d lo había ocultado. Smoke real reveló que la cola de asignaciones es uso operacional diario del admin — debe estar accesible directamente. AveriaResource permanece oculto (per-panel via tabs sigue siendo correcto para investigación de averías). Bloque 09b. |
 | **2026-05-02** | **Pivot completo a IBM Carbon Design System.** Reemplazar paleta cobalto/off-white por Carbon tokens (Blue 60 acento, white base, Gray 100 text, Gray 10 layer). Border-radius 0px en buttons/cards/inputs (Carbon signature). Inputs bottom-border-only (firma Carbon). Type scale Carbon Productive (300/400/600, micro-tracking 0.16/0.32px). Profundidad por capas de color, no shadows. Status: Red 60 / Green 50 / Yellow 30. Heroicons mantenidos (no migrar a IBM Carbon Icons). | Usuario decidió adoptar el sistema completo tras evaluar `docs/references/ibm-carbon-design.md`. Beneficios: sistema reconocible mundialmente, semantic tokens documentados externamente, coherencia industrial-engineering alineada con el dominio (CMMS B2B). Coste: pierde el guiño cromático a la señalética española (cobalto deeper) y la calidez del off-white. **Excepción documentada:** wordmark "Winfin *PIV*" conserva Instrument Serif italic en la "f" como decisión deliberada de identidad — único uso de serif en la app, NO regla general. Implementación en Bloque 09d (theme.css + tailwind config + sticky actions con tokens Carbon + ActionGroup icon-only). |
 | 2026-05-02 | AveriaResource pasa a dual-context: sidebar Reportes (analytics) + ViewPiv tab (investigación per-panel). Bloque 10. | Cross-panel reporting es uso secundario del admin (revisar averías por mes/operador, exportar CSV) — distinto a la investigación per-panel que mantiene el patrón parent-child. Dos contextos, dos rutas, mismo Resource. La duplicación es intencional y reutiliza el código de la tabla. |
+| **2026-06-02** | **Marca: producto = FleetCore, empresa = Winfin.** Sustituir el wordmark de texto "Winfin *PIV*" (Instrument Serif) por los logotipos oficiales. **FleetCore a color en login + favicon/PWA** (icono flecha cian); **desaturado a gris en la chrome del panel** (`.fi-sidebar/.fi-topbar .fi-logo`) para no romper Carbon. **"Una solución de Winfin"** (logo Winfin monocromo "Soluciones Embarcadas") bajo el login. Cian confinado al logotipo; acento de la app sigue siendo **Blue 60**. Wordmark serif legacy retirado. PWA manifest renombrado a FleetCore; iconos regenerados desde el icono oficial. | Decisión del propietario (logos aportados). El producto se comercializa como **FleetCore** (CMMS de equipos embarcados) por Winfin Soluciones Embarcadas. El logo FleetCore es de pincel/manuscrito (NO-Carbon a propósito) → se confina a momentos de marca y se desatura en el panel para preservar la densidad corporativa. Ver §3 Marca. Implementación: `AdminPanelProvider` (brandLogo/darkModeBrandLogo/favicon + render hook), `<x-brand.by-winfin>`, `theme.css` (grayscale), shell PWA técnico, `manifest.webmanifest`. |

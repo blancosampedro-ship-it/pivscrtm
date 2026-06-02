@@ -14,8 +14,8 @@ it('manifest_webmanifest_exists_with_json_content', function (): void {
 it('manifest_has_required_pwa_fields', function (): void {
     $manifest = json_decode(file_get_contents(public_path('manifest.webmanifest')), true);
 
-    expect($manifest['name'])->toBe('Winfin PIV - Técnico');
-    expect($manifest['short_name'])->toBe('Winfin PIV');
+    expect($manifest['name'])->toBe('FleetCore - Técnico');
+    expect($manifest['short_name'])->toBe('FleetCore');
     expect($manifest['start_url'])->toBe('/tecnico');
     expect($manifest['scope'])->toBe('/tecnico/');
     expect($manifest['display'])->toBe('standalone');
@@ -62,7 +62,7 @@ it('tecnico_shell_includes_apple_mobile_web_app_meta_tags', function (): void {
         ->assertOk()
         ->assertSee('<meta name="apple-mobile-web-app-capable" content="yes">', false)
         ->assertSee('<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">', false)
-        ->assertSee('<meta name="apple-mobile-web-app-title" content="Winfin PIV">', false);
+        ->assertSee('<meta name="apple-mobile-web-app-title" content="FleetCore">', false);
 });
 
 it('tecnico_shell_includes_theme_color_meta', function (): void {

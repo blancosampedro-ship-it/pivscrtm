@@ -8,15 +8,15 @@
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon-180x180.png') }}">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Winfin PIV">
-    <title>{{ $title ?? 'Winfin PIV - Técnico' }}</title>
+    <meta name="apple-mobile-web-app-title" content="FleetCore">
+    <title>{{ $title ?? 'FleetCore - Técnico' }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
 <body class="bg-layer-0 text-ink-primary min-h-screen font-sans antialiased">
     <header class="bg-ink-primary text-ink-on_color flex items-center justify-between px-4 h-14 sticky top-0 z-10">
-        <a href="{{ route('tecnico.dashboard') }}" class="brand text-base font-semibold tracking-tight">
-            Win<em>f</em>in <strong>PIV</strong>
+        <a href="{{ route('tecnico.dashboard') }}" class="brand flex items-center" aria-label="FleetCore">
+            <img src="{{ asset('images/brand/fleetcore-wordmark-white.png') }}" alt="FleetCore" class="h-6 w-auto" />
         </a>
         @if (auth()->user()?->isTecnico())
             <div class="flex items-center gap-3">

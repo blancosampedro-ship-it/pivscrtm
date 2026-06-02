@@ -1,7 +1,7 @@
 {
-  "name": "Winfin PIV - Técnico",
-  "short_name": "Winfin PIV",
-  "description": "Gestión de paneles de información al viajero — vista técnico de campo.",
+  "name": "FleetCore - Técnico",
+  "short_name": "FleetCore",
+  "description": "FleetCore — gestión de paneles de información al viajero, vista técnico de campo. Por Winfin.",
   "start_url": "/tecnico",
   "scope": "/tecnico/",
   "display": "standalone",
