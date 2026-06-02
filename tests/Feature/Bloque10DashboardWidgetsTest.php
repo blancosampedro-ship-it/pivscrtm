@@ -82,6 +82,29 @@ it('dashboard_top_paneles_excludes_archived', function () {
         ->assertCanNotSeeTableRecords([$pivArchived]);
 });
 
+it('dashboard_top_paneles_ordena_por_incidencias_recientes', function () {
+    $pocas = Piv::factory()->create(['piv_id' => 98001]);
+    $muchas = Piv::factory()->create(['piv_id' => 98002]);
+    $medias = Piv::factory()->create(['piv_id' => 98003]);
+
+    foreach (range(1, 2) as $i) {
+        Averia::factory()->create(['piv_id' => $pocas->piv_id, 'fecha' => now()->subWeek()]);
+    }
+    foreach (range(1, 8) as $i) {
+        Averia::factory()->create(['piv_id' => $muchas->piv_id, 'fecha' => now()->subWeek()]);
+    }
+    foreach (range(1, 5) as $i) {
+        Averia::factory()->create(['piv_id' => $medias->piv_id, 'fecha' => now()->subWeek()]);
+    }
+    // Averías de hace >6 meses: NO deben contar (si contaran, $medias tendría 15 y saldría primero).
+    foreach (range(1, 10) as $i) {
+        Averia::factory()->create(['piv_id' => $medias->piv_id, 'fecha' => now()->subMonths(8)]);
+    }
+
+    Livewire::test(TopPanelesIncidenciaWidget::class)
+        ->assertCanSeeTableRecords([$muchas, $medias, $pocas], inOrder: true);
+});
+
 it('dashboard_carga_por_tecnico_excludes_inactive_tecnicos', function () {
     $tecnicoActivo = Tecnico::factory()->create(['nombre_completo' => 'Pepe Activo', 'status' => 1]);
     $tecnicoInactivo = Tecnico::factory()->create(['nombre_completo' => 'Mario Inactivo', 'status' => 0]);
