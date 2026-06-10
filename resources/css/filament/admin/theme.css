@@ -230,18 +230,7 @@ body.fi-body {
     background-color: var(--winfin-accent-active);
 }
 
-/* ---- Marca FleetCore en la barra del panel: desaturada (mono) ----
-   El logo FleetCore es a color (flecha cian). En el login se muestra a color (momento de marca),
-   pero en la chrome del panel (sidebar/topbar) se desatura a gris para no romper la densidad
-   Carbon. El login no usa .fi-sidebar/.fi-topbar, así que ahí conserva el color. DESIGN.md §3 (2026-06-02). */
-.fi-sidebar .fi-logo,
-.fi-topbar .fi-logo {
-    filter: grayscale(1);
-    opacity: 0.92;
-}
-
-/* Wordmark serif legacy "Winfin PIV" retirado (ahora la marca es el logo FleetCore).
-   Se conserva .brand em por compatibilidad si algún resto lo usa. */
+/* ---- Wordmark "Winfin PIV" — excepción documentada (DESIGN.md §3) ---- */
 .brand em {
     font-family: '"Instrument Serif"', "ui-serif", "Georgia", serif;
     font-style: italic;

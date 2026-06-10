@@ -11,7 +11,7 @@ use function Livewire\Volt\layout;
 use function Livewire\Volt\title;
 
 layout('components.tecnico.shell');
-title('FleetCore - Mi ruta');
+title('Winfin PIV - Mi ruta');
 
 new class extends Component {
     public int $previousCount = 0;
