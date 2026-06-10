@@ -77,3 +77,12 @@ it('averia_view_action_renders_when_asignacion_is_null', function () {
         ->callTableAction('view', $averia->averia_id)
         ->assertSuccessful();
 });
+
+it('averia list expone las acciones Ver y Editar por fila', function () {
+    Piv::factory()->create(['piv_id' => 96900]);
+    Averia::factory()->create(['averia_id' => 96900, 'piv_id' => 96900, 'status' => 1]);
+
+    Livewire::test(ListAverias::class)
+        ->assertTableActionExists('view')
+        ->assertTableActionExists('edit');
+});
