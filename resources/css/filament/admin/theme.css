@@ -127,30 +127,45 @@ body.fi-body {
     font-variant-numeric: tabular-nums;
 }
 
-/* ---- Sticky actions column (folded de Bloque 09c PR #22 cerrado) ---- */
+/* ---- Columna Acciones — sticky integrada (no flotante) ----
+   Ancho fijo, separador hairline, contenido centrado y cabecera etiquetada "Acciones".
+   La columna es parte de la tabla (Carbon), no una capa con sombra. */
 .fi-ta-table .fi-ta-actions-header-cell,
 .fi-ta-table .fi-ta-actions-cell {
     position: sticky;
     right: 0;
     z-index: 2;
+    width: 112px;
+    min-width: 112px;
+    max-width: 112px;
     background-color: var(--winfin-bg-base);
+    border-left: 1px solid var(--winfin-border-subtle);  /* separador hairline suave */
+    text-align: center;
 }
 
 .fi-ta-table .fi-ta-row:hover .fi-ta-actions-cell {
-    background-color: var(--winfin-bg-layer-01);
+    background-color: var(--winfin-bg-layer-01);  /* fondo idéntico a la fila en hover */
 }
 
+/* Acciones centradas horizontal y verticalmente */
+.fi-ta-table .fi-ta-actions-cell .fi-ta-actions {
+    justify-content: center;
+    align-items: center;
+}
+
+/* Header etiquetado "Acciones" (Filament no lo etiqueta por defecto) */
+.fi-ta-table .fi-ta-actions-header-cell::after {
+    content: "Acciones";
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.32px;
+    color: var(--winfin-text-secondary);
+}
+
+/* Sin sombra-gradiente: la columna es parte de la tabla, no una capa flotante */
 .fi-ta-table .fi-ta-actions-header-cell::before,
 .fi-ta-table .fi-ta-actions-cell::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 8px;
-    transform: translateX(-100%);
-    background: linear-gradient(to left, rgba(15, 17, 21, 0.06), transparent);
-    pointer-events: none;
+    content: none;
 }
 
 /* ---- Inputs — bottom-border-only (firma Carbon) ---- */

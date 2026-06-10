@@ -222,10 +222,14 @@ class AveriaResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
+                    ->iconButton()
+                    ->tooltip('Ver detalle')
                     ->slideOver()
                     ->modalWidth('2xl')
                     ->infolist(fn (Infolist $infolist) => self::infolist($infolist)),
-                Tables\Actions\EditAction::make()->iconButton(),
+                Tables\Actions\EditAction::make()
+                    ->iconButton()
+                    ->tooltip('Editar avería'),
             ]);
     }
 
