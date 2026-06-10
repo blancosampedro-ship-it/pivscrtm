@@ -10,7 +10,7 @@ use function Livewire\Volt\layout;
 use function Livewire\Volt\title;
 
 layout('components.tecnico.shell');
-title('FleetCore - Técnico');
+title('Winfin PIV - Técnico');
 
 new class extends Component {
     public string $email = '';

@@ -10,7 +10,7 @@ use function Livewire\Volt\layout;
 use function Livewire\Volt\title;
 
 layout('components.tecnico.shell');
-title('FleetCore - Cierre ruta');
+title('Winfin PIV - Cierre ruta');
 
 new class extends Component {
     use WithFileUploads;

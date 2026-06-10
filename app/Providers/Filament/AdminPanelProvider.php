@@ -16,14 +16,12 @@ use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use Filament\View\PanelsRenderHook;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
-use Illuminate\Support\Facades\Blade;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
@@ -35,19 +33,6 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login(Login::class)
-            // Marca: producto = FleetCore, empresa = Winfin (DESIGN.md §3 / log 2026-06-02).
-            // brandLogo a color → se ve a color en el login; en la barra del panel se desatura
-            // a mono vía theme.css (.fi-topbar/.fi-sidebar .fi-logo) para no romper la densidad Carbon.
-            ->brandName('FleetCore')
-            ->brandLogo(asset('images/brand/fleetcore-logo.png'))
-            ->darkModeBrandLogo(asset('images/brand/fleetcore-logo-white.png'))
-            ->brandLogoHeight('2.25rem')
-            ->favicon(asset('favicon.ico'))
-            // "by Winfin" bajo el formulario de login (la empresa detrás del producto).
-            ->renderHook(
-                PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
-                fn (): string => Blade::render('<x-brand.by-winfin />'),
-            )
             ->colors([
                 // Carbon Blue 60 — único acento (DESIGN.md §4). Sustituye al cobalto legacy '#1D3F8C'.
                 'primary' => Color::hex('#0F62FE'),

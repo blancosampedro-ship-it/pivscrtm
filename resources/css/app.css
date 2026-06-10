@@ -32,7 +32,7 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Wordmark serif legacy "Winfin PIV" retirado (marca actual: logo FleetCore). .brand em se conserva por compat. */
+  /* Wordmark "Winfin PIV" — único uso permitido de Instrument Serif (excepción documentada DESIGN.md §3) */
   .brand em {
     font-family: var(--font-serif);
     font-style: italic;
