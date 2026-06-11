@@ -86,7 +86,8 @@ class AveriaResource extends Resource
                         ->preload(),
                     Forms\Components\Select::make('tecnico_id')
                         ->label('Técnico asignado (inicial)')
-                        ->relationship('tecnico', 'nombre_completo')
+                        // Solo técnicos activos: no se puede asignar a uno inactivo/dado de baja.
+                        ->relationship('tecnico', 'nombre_completo', fn (Builder $query) => $query->where('status', 1))
                         ->searchable()
                         ->preload()
                         ->nullable(),

@@ -111,7 +111,8 @@ class AsignacionResource extends Resource
                         ->required(),
                     Forms\Components\Select::make('tecnico_id')
                         ->label('Técnico')
-                        ->relationship('tecnico', 'nombre_completo')
+                        // Solo técnicos activos: no se asigna trabajo a uno inactivo/dado de baja.
+                        ->relationship('tecnico', 'nombre_completo', fn (Builder $query) => $query->where('status', 1))
                         ->searchable()
                         ->preload(),
                 ]),
