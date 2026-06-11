@@ -171,6 +171,7 @@ class PivResource extends Resource
                 Tables\Columns\TextColumn::make('municipioModulo.nombre')
                     ->label('Municipio')
                     ->default('—')
+                    ->searchable()
                     ->sortable()
                     ->color('gray'),
                 Tables\Columns\TextColumn::make('operadorPrincipal.razon_social')
