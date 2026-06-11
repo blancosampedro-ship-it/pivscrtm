@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Enums\AveriaStatus;
 use App\Filament\Resources\AveriaResource\Pages;
 use App\Models\Averia;
 use App\Models\Piv;
@@ -154,9 +155,10 @@ class AveriaResource extends Resource
                         default => 'gray',
                     }),
                 Tables\Columns\TextColumn::make('status')
-                    ->label('Status')
+                    ->label('Estado')
                     ->badge()
-                    ->extraAttributes(['data-mono' => true]),
+                    ->formatStateUsing(fn ($state): string => AveriaStatus::labelFor($state))
+                    ->color(fn ($state): string => AveriaStatus::colorFor($state)),
                 Tables\Columns\TextColumn::make('notas')
                     ->label('Notas')
                     ->limit(60)
@@ -180,9 +182,12 @@ class AveriaResource extends Resource
                         }
 
                         return match ($v) {
-                            'cerradas' => $query->where('status', 2),
+                            'cerradas' => $query->where('status', AveriaStatus::Resuelta->value),
                             'todas' => $query,
-                            default => $query->where('status', '!=', 2), // pendientes = no cerradas
+                            // Pendientes = 1 Abierta + 3 En curso + 4 Bloqueada (excluye 2 y 5).
+                            // Nota Fase 2: NO se excluyen aún las status=4 con notas DESMONTADO/RETIRADA
+                            // (se vería tras validar esos históricos). Ver spec §3.
+                            default => $query->whereIn('status', AveriaStatus::pendientes()),
                         };
                     }),
                 Tables\Filters\SelectFilter::make('periodo')
@@ -248,7 +253,10 @@ class AveriaResource extends Resource
                         ->extraAttributes(['data-mono' => true])
                         ->default('—'),
                     Infolists\Components\TextEntry::make('status')
+                        ->label('Estado')
                         ->badge()
+                        ->formatStateUsing(fn ($state): string => AveriaStatus::labelFor($state))
+                        ->color(fn ($state): string => AveriaStatus::colorFor($state))
                         ->default('—'),
                     Infolists\Components\TextEntry::make('asignacion_tipo_label')
                         ->label('Tipo de asignación')
