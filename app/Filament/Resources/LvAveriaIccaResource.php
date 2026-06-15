@@ -108,7 +108,10 @@ final class LvAveriaIccaResource extends Resource
                     ->label('Activa')
                     ->placeholder('Todas')
                     ->trueLabel('Solo activas')
-                    ->falseLabel('Solo inactivas'),
+                    ->falseLabel('Solo inactivas')
+                    // Por defecto solo las activas = las de la última importación SGIP.
+                    // El histórico (inactivas) sigue accesible cambiando este filtro.
+                    ->default(true),
                 Tables\Filters\Filter::make('fecha_import')
                     ->form([
                         Forms\Components\DatePicker::make('desde'),
@@ -154,6 +157,16 @@ final class LvAveriaIccaResource extends Resource
                     ->slideOver()
                     ->modalWidth('3xl')
                     ->infolist(fn (Infolist $infolist): Infolist => self::infolist($infolist)),
+                Tables\Actions\DeleteAction::make()
+                    ->label('Borrar')
+                    ->icon('heroicon-m-trash')
+                    ->size(ActionSize::Small),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    // Selección múltiple → borrar una, varias o todas las ICCA.
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ]);
     }
 
