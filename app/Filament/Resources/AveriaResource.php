@@ -65,7 +65,7 @@ class AveriaResource extends Resource
                         ->label('Fecha y hora')
                         ->seconds(false),
                     Forms\Components\TextInput::make('status')
-                        ->label('Status')
+                        ->label('Estado')
                         ->numeric()
                         ->default(1),
                 ]),

@@ -109,7 +109,7 @@ final class LvRutaDiaResource extends Resource
                         ->required()
                         ->disabled(),
                     Forms\Components\Select::make('status')
-                        ->label('Status')
+                        ->label('Estado')
                         ->options(self::statusOptions())
                         ->required()
                         ->disabled(fn (?LvRutaDia $record): bool => $record?->isEditable() === false),
@@ -146,7 +146,7 @@ final class LvRutaDiaResource extends Resource
                     ->extraAttributes(['data-mono' => true])
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
-                    ->label('Status')
+                    ->label('Estado')
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => self::statusLabel($state))
                     ->color(fn (string $state): string => self::statusColor($state)),
@@ -175,7 +175,7 @@ final class LvRutaDiaResource extends Resource
                     ->options(fn (): array => Tecnico::query()->orderBy('nombre_completo')->pluck('nombre_completo', 'tecnico_id')->all())
                     ->searchable(),
                 Tables\Filters\SelectFilter::make('status')
-                    ->label('Status')
+                    ->label('Estado')
                     ->options(self::statusOptions())
                     ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
                         ? $query->where('status', $data['value'])
