@@ -99,6 +99,8 @@ body.fi-body {
     letter-spacing: 0.16px;
 }
 
+/* Suelo de 40px por fila: con el padding compacto de abajo, las celdas de
+   solo texto quedarían en ~34px; este mínimo las sube al rango 36-40px. */
 .fi-ta-row {
     height: 40px;
 }
@@ -107,12 +109,15 @@ body.fi-body {
    px-3 py-4 (12/16px) en el wrapper interno de cada celda; Carbon productive
    usa 8px vertical y 8px horizontal (16px efectivos entre columnas). */
 .fi-ta-table .fi-ta-text,
-.fi-ta-table .fi-ta-icon {
+.fi-ta-table .fi-ta-icon,
+.fi-ta-table .fi-ta-image {
     padding: 8px;
 }
 
-.fi-ta-table .fi-ta-record-checkbox {
-    margin: 8px;
+/* Celda de checkbox (bulk actions): el padding vive en un div sin clase
+   dentro de .fi-ta-selection-cell (px-3 py-4 en el blade de Filament). */
+.fi-ta-table .fi-ta-selection-cell > div {
+    padding: 8px;
 }
 
 /* Iconos de acción (32px) + 4px arriba/abajo = fila de 40px */
@@ -127,8 +132,19 @@ body.fi-body {
     letter-spacing: 0.32px;
     text-transform: none;       /* Carbon: header sin uppercase */
     color: var(--winfin-text-secondary);
-    padding-block: 10px;
+    padding-block: 8px;
     padding-inline: 8px;
+}
+
+/* Alineación con el contenido en la primera/última columna: el <th> de
+   Filament trae sm:first-of-type:ps-6 / sm:last-of-type:pe-6 (24px), pero el
+   cuerpo queda en 12px (td) + 8px (wrapper) = 20px. Igualamos el header. */
+.fi-ta-header-cell:first-of-type {
+    padding-inline-start: 20px;
+}
+
+.fi-ta-header-cell:last-of-type {
+    padding-inline-end: 20px;
 }
 
 .fi-ta-group-header {

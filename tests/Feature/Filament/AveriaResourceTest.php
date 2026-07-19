@@ -96,8 +96,18 @@ it('averia_row_click_abre_ver_y_acciones_en_kebab', function () {
     expect($table->getRecordAction($averia))->toBe('view');
 
     // Las acciones van en un kebab (ActionGroup), mismo patrón que PivResource.
-    $source = file_get_contents(app_path('Filament/Resources/AveriaResource.php'));
-    expect($source)->toContain('Tables\Actions\ActionGroup::make([');
+    $grupos = collect($table->getActions())
+        ->filter(fn ($accion) => $accion instanceof \Filament\Tables\Actions\ActionGroup);
+    expect($grupos->isNotEmpty())->toBeTrue();
+});
+
+it('averia_edit_navegable_desde_el_kebab_y_notas_oculta_por_defecto', function () {
+    Piv::factory()->create(['piv_id' => 96903]);
+    $averia = Averia::factory()->create(['averia_id' => 96903, 'piv_id' => 96903, 'status' => 1]);
+
+    Livewire::test(ListAverias::class)
+        ->assertTableActionHasUrl('edit', AveriaResource::getUrl('edit', ['record' => $averia]), $averia->averia_id)
+        ->assertCanNotRenderTableColumn('notas');
 });
 
 it('averia_view_action_montable_desde_el_kebab', function () {

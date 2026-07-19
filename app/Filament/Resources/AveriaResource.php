@@ -132,17 +132,17 @@ class AveriaResource extends Resource
                     ->label('Municipio')
                     ->default('—')
                     ->limit(18)
-                    ->tooltip(fn ($record) => $record->piv?->municipioModulo?->nombre)
+                    ->tooltip(self::tooltipSiTruncado(18))
                     ->color('gray'),
                 Tables\Columns\TextColumn::make('operador.razon_social')
                     ->label('Operador')
                     ->limit(16)
-                    ->tooltip(fn ($record) => $record->operador?->razon_social)
+                    ->tooltip(self::tooltipSiTruncado(16))
                     ->color('gray'),
                 Tables\Columns\TextColumn::make('tecnico.nombre_completo')
                     ->label('Técnico')
                     ->limit(16)
-                    ->tooltip(fn ($record) => $record->tecnico?->nombre_completo)
+                    ->tooltip(self::tooltipSiTruncado(16))
                     ->placeholder('—')
                     ->color('gray'),
                 Tables\Columns\TextColumn::make('asignacion.tipo')
@@ -240,6 +240,14 @@ class AveriaResource extends Resource
                     Tables\Actions\EditAction::make(),
                 ]),
             ]);
+    }
+
+    /** Tooltip solo cuando el valor supera el límite visible de la columna. */
+    protected static function tooltipSiTruncado(int $limite): \Closure
+    {
+        return fn (Tables\Columns\TextColumn $column): ?string => mb_strlen((string) $column->getState()) > $limite
+            ? (string) $column->getState()
+            : null;
     }
 
     public static function infolist(Infolist $infolist): Infolist

@@ -295,7 +295,7 @@ Anti-patrón: **valores arbitrarios fuera del 8px grid**. Si una distancia "no e
 
 ### 10.1 Filament 3.2
 
-- **Theme custom:** `resources/css/filament/admin/theme.css` (override completo). Bloque 09d aplica el pivot Carbon: tokens, fonts pesos 300/400/600, 0px border-radius en buttons/cards/inputs, bottom-border en inputs, sticky actions column con tokens Carbon.
+- **Theme custom:** `resources/css/filament/admin/theme.css` (override completo). Bloque 09d aplica el pivot Carbon: tokens, fonts pesos 300/400/600, 0px border-radius en buttons/cards/inputs, bottom-border en inputs. Tablas: densidad productive real (padding 8px, filas 36–40px) y acciones fila-clicable + kebab ⋮ — sin columna sticky (ver Decisions Log 2026-07-19).
 - **Tailwind config — primary color como Blue 60:**
 
 ```js
