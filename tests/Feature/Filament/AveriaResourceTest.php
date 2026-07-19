@@ -86,3 +86,25 @@ it('averia list expone las acciones Ver y Editar por fila', function () {
         ->assertTableActionExists('view')
         ->assertTableActionExists('edit');
 });
+
+it('averia_row_click_abre_ver_y_acciones_en_kebab', function () {
+    Piv::factory()->create(['piv_id' => 96901]);
+    $averia = Averia::factory()->create(['averia_id' => 96901, 'piv_id' => 96901, 'status' => 1]);
+
+    // La fila entera es clicable y abre la acción 'view' (slide-over).
+    $table = Livewire::test(ListAverias::class)->instance()->getTable();
+    expect($table->getRecordAction($averia))->toBe('view');
+
+    // Las acciones van en un kebab (ActionGroup), mismo patrón que PivResource.
+    $source = file_get_contents(app_path('Filament/Resources/AveriaResource.php'));
+    expect($source)->toContain('Tables\Actions\ActionGroup::make([');
+});
+
+it('averia_view_action_montable_desde_el_kebab', function () {
+    Piv::factory()->create(['piv_id' => 96902]);
+    $averia = Averia::factory()->create(['averia_id' => 96902, 'piv_id' => 96902, 'status' => 1]);
+
+    Livewire::test(ListAverias::class)
+        ->mountTableAction('view', $averia->averia_id)
+        ->assertSuccessful();
+});
