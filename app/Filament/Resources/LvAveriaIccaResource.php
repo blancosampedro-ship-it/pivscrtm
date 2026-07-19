@@ -92,6 +92,14 @@ final class LvAveriaIccaResource extends Resource
                 Tables\Columns\IconColumn::make('activa')
                     ->label('Activa')
                     ->boolean(),
+                Tables\Columns\TextColumn::make('cerrada_local_at')
+                    ->label('Reparada')
+                    ->badge()
+                    ->formatStateUsing(fn (): string => 'Reparada')
+                    ->color('success')
+                    ->placeholder('—')
+                    // Reparada en campo por el técnico; SGIP puede tardar en reflejarlo.
+                    ->tooltip(fn (LvAveriaIcca $record): ?string => $record->cerrada_local_at?->format('Y-m-d H:i')),
                 Tables\Columns\TextColumn::make('fecha_import')
                     ->label('Import')
                     ->dateTime('Y-m-d H:i')

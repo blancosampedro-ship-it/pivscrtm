@@ -93,9 +93,9 @@ it('ver el listado no modifica el status de las averías (capa de presentación)
     expect((int) Averia::find(70034)->status)->toBe(4); // intacto
 });
 
-it('no introduce nuevas migraciones en esta fase', function (): void {
-    // Fase 1 es solo presentación: el conteo de migraciones no cambia respecto a las
-    // 15 de main. Si esta cifra sube, alguien añadió una migración fuera de alcance.
+it('el conteo de migraciones coincide con el esperado', function (): void {
+    // Guard contra migraciones accidentales: actualizar SOLO cuando una PR añada
+    // una migración a propósito. 15 de base + 1 de M1 (cierre local en ICCA).
     $migraciones = glob(database_path('migrations/*.php'));
-    expect(count($migraciones))->toBe(15);
+    expect(count($migraciones))->toBe(16);
 });
