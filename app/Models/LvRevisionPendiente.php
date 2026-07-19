@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * Una fila por panel y mes. La crea el cron mensual y la decide admin en 12b.4.
@@ -18,6 +20,11 @@ final class LvRevisionPendiente extends Model
 {
     /** @use HasFactory<LvRevisionPendienteFactory> */
     use HasFactory;
+
+    use LogsActivity;
+
+    /** Auditoría (M2): solo estos eventos — evita ruido de operaciones masivas. */
+    protected static $recordEvents = ['updated', 'deleted'];
 
     protected $table = 'lv_revision_pendiente';
 
@@ -120,5 +127,15 @@ final class LvRevisionPendiente extends Model
     public function isCarryOver(): bool
     {
         return $this->carry_over_origen_id !== null;
+    }
+
+    /** Auditoría (M2): registra quién cambió qué. */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('revision_pendiente')
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
     }
 }

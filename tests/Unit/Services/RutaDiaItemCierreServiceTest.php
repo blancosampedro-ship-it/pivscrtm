@@ -76,7 +76,7 @@ function rutaDiaCierreRevisionItem(LvRutaDia $ruta, string $tipo = LvRutaDiaItem
     ]);
 }
 
-it('cierra item correctivo solo actualizando item y fotos sin crear revision legacy', function (): void {
+it('cierra correctivo marcando ICCA reparada y creando parte legacy completo (M1)', function (): void {
     $tecnico = rutaDiaCierreTecnico();
     $ruta = rutaDiaCierreRuta($tecnico);
     $item = rutaDiaCierreCorrectivoItem($ruta);
@@ -85,14 +85,80 @@ it('cierra item correctivo solo actualizando item y fotos sin crear revision leg
         'status' => LvRutaDiaItem::STATUS_CERRADO,
         'notas_tecnico' => 'Audio reiniciado',
         'fotos' => ['piv-images/ruta-dia-item/audio.jpg'],
+        'tiempo' => '30',
+        'recambios' => ['Cable', 'Batería'],
     ], $tecnico);
 
     expect($item->fresh()->status)->toBe(LvRutaDiaItem::STATUS_CERRADO);
     expect($item->fresh()->notas_tecnico)->toBe('Audio reiniciado');
     expect($item->fresh()->cerrado_at)->not->toBeNull();
-    expect(Revision::query()->count())->toBe(0);
-    expect(Correctivo::query()->count())->toBe(0);
     expect(LvRutaDiaItemImagen::query()->first()?->posicion)->toBe(1);
+
+    // La ICCA queda reparada localmente (activa sigue siendo verdad-SGIP).
+    $icca = $item->fresh()->averiaIcca;
+    expect($icca->cerrada_local_at)->not->toBeNull();
+    expect($icca->cerrada_por_item_id)->toBe($item->id);
+    expect($icca->activa)->toBeTrue();
+
+    // Parte legacy: averia resuelta + asignacion tipo 1 cerrada + correctivo.
+    $averia = Averia::query()->latest('averia_id')->first();
+    expect((int) $averia->status)->toBe(2);
+    expect((int) $averia->tecnico_id)->toBe($tecnico->tecnico_id);
+    expect($averia->notas)->toContain('Correctivo SGIP #'.$icca->sgip_id);
+
+    $asignacion = Asignacion::query()->where('averia_id', $averia->averia_id)->first();
+    expect((int) $asignacion->tipo)->toBe(Asignacion::TIPO_CORRECTIVO);
+    expect((int) $asignacion->status)->toBe(2);
+
+    $correctivo = Correctivo::query()->where('asignacion_id', $asignacion->asignacion_id)->first();
+    expect($correctivo)->not->toBeNull();
+    expect($correctivo->tiempo)->toBe('0.5');
+    expect($correctivo->recambios)->toBe('Cable, Batería');
+    expect($correctivo->diagnostico)->toContain('SGIP #'.$icca->sgip_id);
+    expect($correctivo->diagnostico)->toContain('Audio reiniciado');
+    expect($correctivo->estado_final)->toBe('OK');
+    expect($correctivo->imagenes()->count())->toBe(1);
+
+    expect(Revision::query()->count())->toBe(0);
+});
+
+it('correctivo ambiguo (ICCA sin piv) marca reparada pero no crea parte legacy', function (): void {
+    $tecnico = rutaDiaCierreTecnico(78111);
+    $ruta = rutaDiaCierreRuta($tecnico);
+    $averiaIcca = LvAveriaIcca::factory()->create(['piv_id' => null]);
+    $item = LvRutaDiaItem::factory()->create([
+        'ruta_dia_id' => $ruta->id,
+        'orden' => 1,
+        'tipo_item' => LvRutaDiaItem::TIPO_CORRECTIVO,
+        'lv_averia_icca_id' => $averiaIcca->id,
+        'lv_revision_pendiente_id' => null,
+        'status' => LvRutaDiaItem::STATUS_PENDIENTE,
+    ]);
+
+    app(RutaDiaItemCierreService::class)->cerrar($item, [
+        'status' => LvRutaDiaItem::STATUS_CERRADO,
+        'notas_tecnico' => 'Arreglada in situ',
+        'tiempo' => '15',
+    ], $tecnico);
+
+    expect($averiaIcca->fresh()->cerrada_local_at)->not->toBeNull();
+    expect(Averia::query()->count())->toBe(0);
+    expect(Correctivo::query()->count())->toBe(0);
+});
+
+it('correctivo no_resuelto no marca la ICCA ni crea parte legacy', function (): void {
+    $tecnico = rutaDiaCierreTecnico(78112);
+    $ruta = rutaDiaCierreRuta($tecnico);
+    $item = rutaDiaCierreCorrectivoItem($ruta);
+
+    app(RutaDiaItemCierreService::class)->cerrar($item, [
+        'status' => LvRutaDiaItem::STATUS_NO_RESUELTO,
+        'causa_no_resolucion' => 'Sin tensión: acometida caída',
+    ], $tecnico);
+
+    expect($item->fresh()->averiaIcca->cerrada_local_at)->toBeNull();
+    expect(Averia::query()->count())->toBe(0);
+    expect(Correctivo::query()->count())->toBe(0);
 });
 
 it('cierra preventivo sin asignacion y crea averia asignacion revision legacy', function (): void {

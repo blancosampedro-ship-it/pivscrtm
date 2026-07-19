@@ -9,11 +9,18 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 final class LvAveriaIcca extends Model
 {
     /** @use HasFactory<LvAveriaIccaFactory> */
     use HasFactory;
+
+    use LogsActivity;
+
+    /** Auditoría (M2): solo estos eventos — evita ruido de operaciones masivas. */
+    protected static $recordEvents = ['deleted'];
 
     protected $table = 'lv_averia_icca';
 
@@ -48,6 +55,8 @@ final class LvAveriaIcca extends Model
         'archivo_origen',
         'imported_by_user_id',
         'marked_inactive_at',
+        'cerrada_local_at',
+        'cerrada_por_item_id',
     ];
 
     protected $casts = [
@@ -56,6 +65,8 @@ final class LvAveriaIcca extends Model
         'fecha_import' => 'datetime',
         'imported_by_user_id' => 'integer',
         'marked_inactive_at' => 'datetime',
+        'cerrada_local_at' => 'datetime',
+        'cerrada_por_item_id' => 'integer',
     ];
 
     protected static function newFactory(): LvAveriaIccaFactory
@@ -81,5 +92,30 @@ final class LvAveriaIcca extends Model
     public function scopeInactivas(Builder $query): void
     {
         $query->where('activa', false);
+    }
+
+    /**
+     * Sin cierre local del técnico: las únicas que deben entrar en rutas nuevas.
+     * `activa` es verdad-SGIP; `cerrada_local_at` es la marca de "ya reparada
+     * en campo aunque SGIP aún la liste" (M1).
+     */
+    public function scopeSinCierreLocal(Builder $query): void
+    {
+        $query->whereNull('cerrada_local_at');
+    }
+
+    public function tieneCierreLocal(): bool
+    {
+        return $this->cerrada_local_at !== null;
+    }
+
+    /** Auditoría (M2): registra quién cambió qué. */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('averia_icca')
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
     }
 }

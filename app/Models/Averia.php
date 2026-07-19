@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * Avería de un PIV. 66.392 filas en prod.
@@ -24,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Averia extends Model
 {
     use HasFactory;
+    use LogsActivity;
 
     protected $table = 'averia';
 
@@ -60,5 +63,15 @@ class Averia extends Model
     public function asignacion(): HasOne
     {
         return $this->hasOne(Asignacion::class, 'averia_id', 'averia_id');
+    }
+
+    /** Auditoría (M2): registra quién cambió qué. */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('averia')
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
     }
 }

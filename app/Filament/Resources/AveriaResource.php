@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Enums\AveriaStatus;
 use App\Filament\Resources\AveriaResource\Pages;
 use App\Models\Averia;
 use App\Models\Piv;
@@ -64,7 +65,7 @@ class AveriaResource extends Resource
                         ->label('Fecha y hora')
                         ->seconds(false),
                     Forms\Components\TextInput::make('status')
-                        ->label('Status')
+                        ->label('Estado')
                         ->numeric()
                         ->default(1),
                 ]),
@@ -86,7 +87,8 @@ class AveriaResource extends Resource
                         ->preload(),
                     Forms\Components\Select::make('tecnico_id')
                         ->label('Técnico asignado (inicial)')
-                        ->relationship('tecnico', 'nombre_completo')
+                        // Solo técnicos activos: no se puede asignar a uno inactivo/dado de baja.
+                        ->relationship('tecnico', 'nombre_completo', fn (Builder $query) => $query->where('status', 1))
                         ->searchable()
                         ->preload()
                         ->nullable(),
@@ -153,9 +155,10 @@ class AveriaResource extends Resource
                         default => 'gray',
                     }),
                 Tables\Columns\TextColumn::make('status')
-                    ->label('Status')
+                    ->label('Estado')
                     ->badge()
-                    ->extraAttributes(['data-mono' => true]),
+                    ->formatStateUsing(fn ($state): string => AveriaStatus::labelFor($state))
+                    ->color(fn ($state): string => AveriaStatus::colorFor($state)),
                 Tables\Columns\TextColumn::make('notas')
                     ->label('Notas')
                     ->limit(60)
@@ -164,11 +167,44 @@ class AveriaResource extends Resource
             ])
             ->defaultSort('fecha', 'desc')
             ->filters([
-                Tables\Filters\SelectFilter::make('status')
-                    ->options([1 => 'Abierta', 2 => 'Cerrada', 4 => 'Status 4'])
-                    ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
-                        ? $query->where('status', $data['value'])
-                        : $query),
+                Tables\Filters\SelectFilter::make('estado')
+                    ->label('Estado')
+                    ->options([
+                        'pendientes' => 'Pendientes (abiertas)',
+                        'cerradas' => 'Cerradas',
+                        'todas' => 'Todas',
+                    ])
+                    ->default('pendientes')
+                    ->query(function (Builder $query, array $data): Builder {
+                        $v = $data['value'] ?? 'pendientes';
+                        if ($v === '') {
+                            $v = 'pendientes';
+                        }
+
+                        return match ($v) {
+                            'cerradas' => $query->where('status', AveriaStatus::Resuelta->value),
+                            'todas' => $query,
+                            // Pendientes = 1 Abierta + 3 En curso + 4 Bloqueada (excluye 2 y 5).
+                            // Nota Fase 2: NO se excluyen aún las status=4 con notas DESMONTADO/RETIRADA
+                            // (se vería tras validar esos históricos). Ver spec §3.
+                            default => $query->whereIn('status', AveriaStatus::pendientes()),
+                        };
+                    }),
+                Tables\Filters\SelectFilter::make('periodo')
+                    ->label('Periodo')
+                    ->options([
+                        'mes' => 'Mes en curso',
+                        'anio' => 'Año en curso',
+                        'todo' => 'Todo el histórico',
+                    ])
+                    ->default('todo')
+                    ->query(function (Builder $query, array $data): Builder {
+                        return match ($data['value'] ?? 'todo') {
+                            'mes' => $query->whereYear('fecha', now()->year)->whereMonth('fecha', now()->month),
+                            'anio' => $query->whereYear('fecha', now()->year),
+                            default => $query,
+                        };
+                    }),
                 Tables\Filters\SelectFilter::make('tecnico_id')
                     ->label('Técnico')
                     ->relationship('tecnico', 'nombre_completo')
@@ -192,10 +228,14 @@ class AveriaResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
+                    ->iconButton()
+                    ->tooltip('Ver detalle')
                     ->slideOver()
                     ->modalWidth('2xl')
                     ->infolist(fn (Infolist $infolist) => self::infolist($infolist)),
-                Tables\Actions\EditAction::make()->iconButton(),
+                Tables\Actions\EditAction::make()
+                    ->iconButton()
+                    ->tooltip('Editar avería'),
             ]);
     }
 
@@ -213,7 +253,10 @@ class AveriaResource extends Resource
                         ->extraAttributes(['data-mono' => true])
                         ->default('—'),
                     Infolists\Components\TextEntry::make('status')
+                        ->label('Estado')
                         ->badge()
+                        ->formatStateUsing(fn ($state): string => AveriaStatus::labelFor($state))
+                        ->color(fn ($state): string => AveriaStatus::colorFor($state))
                         ->default('—'),
                     Infolists\Components\TextEntry::make('asignacion_tipo_label')
                         ->label('Tipo de asignación')

@@ -89,13 +89,7 @@ final class PivRutaResource extends Resource
                 Tables\Columns\TextColumn::make('codigo')
                     ->label('Código')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        PivRuta::COD_ROSA_NO, PivRuta::COD_ROSA_E => 'pink',
-                        PivRuta::COD_VERDE => 'success',
-                        PivRuta::COD_AZUL => 'primary',
-                        PivRuta::COD_AMARILLO => 'warning',
-                        default => 'gray',
-                    })
+                    ->color('gray') // El color real de cada zona se muestra en la columna "Color" (color_hint).
                     ->extraAttributes(['data-mono' => true])
                     ->searchable()
                     ->sortable(),

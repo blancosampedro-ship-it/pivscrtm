@@ -44,6 +44,12 @@ new class extends Component {
     /** @var array<int, \Livewire\Features\SupportFileUploads\TemporaryUploadedFile> */
     public array $fotos = [];
 
+    /** Tiempo empleado (minutos, catálogo CierreCatalogo). Solo correctivo resuelto. */
+    public string $tiempo = '';
+
+    /** @var array<int, string> Recambios usados (catálogo CierreCatalogo). */
+    public array $recambios = [];
+
     public const CAUSAS = [
         'Sin tensión',
         'Software Indra',
@@ -118,6 +124,13 @@ new class extends Component {
             $rules['causa_no_resolucion'] = ['required', 'string', 'max:500'];
         }
 
+        // M1: el parte del correctivo resuelto exige tiempo; recambios opcional.
+        if ($this->isCorrectivo() && $this->status === LvRutaDiaItem::STATUS_CERRADO) {
+            $rules['tiempo'] = ['required', 'in:'.implode(',', \App\Support\CierreCatalogo::tiempoValues())];
+            $rules['recambios'] = ['nullable', 'array'];
+            $rules['recambios.*'] = ['in:'.implode(',', \App\Support\CierreCatalogo::RECAMBIOS_DISPONIBLES)];
+        }
+
         if (! $this->isCorrectivo()) {
             $rules += [
                 'aspecto' => ['required', 'in:OK,KO,N/A'],
@@ -152,6 +165,8 @@ new class extends Component {
                 'ruta' => $this->ruta,
                 'precision_paso' => $this->precision_paso ?: $this->precisionPaso,
                 'fotos' => $fotosPaths,
+                'tiempo' => $this->tiempo,
+                'recambios' => $this->recambios,
             ], Tecnico::findOrFail((int) auth()->user()->legacy_id));
         } catch (ValidationException $exception) {
             $this->addError('cerrar', collect($exception->errors())->flatten()->first() ?? 'No se pudo cerrar.');
@@ -179,6 +194,21 @@ new class extends Component {
                 'causa_no_resolucion' => ['required', 'string', 'max:500'],
             ]);
         }
+
+        if ($this->isCorrectivo() && $this->step === 2 && $this->status === LvRutaDiaItem::STATUS_CERRADO) {
+            $this->validate([
+                'tiempo' => ['required', 'in:'.implode(',', \App\Support\CierreCatalogo::tiempoValues())],
+            ], ['tiempo.required' => 'Indica el tiempo empleado.', 'tiempo.in' => 'Indica el tiempo empleado.']);
+        }
+    }
+
+    public function toggleRecambio(string $recambio): void
+    {
+        abort_unless(in_array($recambio, \App\Support\CierreCatalogo::RECAMBIOS_DISPONIBLES, true), 422);
+
+        $this->recambios = in_array($recambio, $this->recambios, true)
+            ? array_values(array_diff($this->recambios, [$recambio]))
+            : [...$this->recambios, $recambio];
     }
 
     public function totalSteps(): int
@@ -257,6 +287,27 @@ new class extends Component {
                         <div>
                             <label for="causa_no_resolucion" class="block text-xs uppercase tracking-wider text-ink-secondary font-medium mb-2">Detalle</label>
                             <textarea id="causa_no_resolucion" wire:model="causa_no_resolucion" rows="3" class="block w-full border-0 border-b border-line-strong bg-layer-0 px-0 py-4 text-lg focus:border-primary-60 focus:ring-0"></textarea>
+                        </div>
+                    @endif
+                    @if ($status === \App\Models\LvRutaDiaItem::STATUS_CERRADO)
+                        <div>
+                            <label for="tiempo" class="block text-xs uppercase tracking-wider text-ink-secondary font-medium mb-2">Tiempo empleado</label>
+                            <select id="tiempo" wire:model="tiempo" class="block w-full border border-line-strong bg-layer-0 p-4 text-lg">
+                                <option value="">Selecciona tiempo</option>
+                                @foreach (\App\Support\CierreCatalogo::TIEMPOS_DISPONIBLES as $opcion)
+                                    <option value="{{ $opcion['value'] }}">{{ $opcion['label'] }}</option>
+                                @endforeach
+                            </select>
+                            @error('tiempo')<p class="text-error text-sm mt-1">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <div class="text-xs uppercase tracking-wider text-ink-secondary font-medium mb-2">Recambios (opcional)</div>
+                            <div class="grid grid-cols-2 gap-2">
+                                @foreach (\App\Support\CierreCatalogo::RECAMBIOS_DISPONIBLES as $recambio)
+                                    @php $selected = in_array($recambio, $recambios, true); @endphp
+                                    <button type="button" wire:click="toggleRecambio('{{ $recambio }}')" class="min-h-14 text-md font-medium border {{ $selected ? 'bg-primary-60 text-ink-on_color border-primary-60' : 'bg-layer-0 border-line-subtle' }}">{{ $recambio }}</button>
+                                @endforeach
+                            </div>
                         </div>
                     @endif
                     <div>

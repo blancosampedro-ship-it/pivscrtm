@@ -8,6 +8,8 @@ use App\Casts\Latin1String;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * Técnico de campo. 65 filas en prod, 3 activas.
@@ -23,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Tecnico extends Model
 {
     use HasFactory;
+    use LogsActivity;
 
     protected $table = 'tecnico';
 
@@ -52,5 +55,17 @@ class Tecnico extends Model
     public function averias(): HasMany
     {
         return $this->hasMany(Averia::class, 'tecnico_id', 'tecnico_id');
+    }
+
+    /** Auditoría (M2): registra quién cambió qué. */
+    public function getActivitylogOptions(): LogOptions
+    {
+        // RGPD: NUNCA volcar al log dni/nss/ccc/teléfono/dirección/clave.
+        // Solo atributos operativos en la whitelist.
+        return LogOptions::defaults()
+            ->useLogName('tecnico')
+            ->logOnly(['nombre_completo', 'usuario', 'status'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
     }
 }

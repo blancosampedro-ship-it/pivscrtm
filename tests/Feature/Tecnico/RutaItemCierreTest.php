@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\Correctivo;
 use App\Models\LvAveriaIcca;
 use App\Models\LvRevisionPendiente;
 use App\Models\LvRutaDia;
@@ -67,6 +68,8 @@ it('tecnico cierra correctivo ok desde Volt', function (): void {
 
     Volt::test('tecnico.ruta-item-cierre', ['itemId' => $item->id])
         ->set('notas', 'Reinicio correcto')
+        ->set('tiempo', '30')
+        ->call('toggleRecambio', 'Cable')
         ->call('cerrar')
         ->assertHasNoErrors()
         ->assertRedirect(route('tecnico.dashboard'));
@@ -74,6 +77,25 @@ it('tecnico cierra correctivo ok desde Volt', function (): void {
     expect($item->fresh()->status)->toBe(LvRutaDiaItem::STATUS_CERRADO);
     expect($item->fresh()->notas_tecnico)->toBe('Reinicio correcto');
     expect($item->fresh()->cerrado_at)->not->toBeNull();
+
+    // M1: la ICCA queda reparada y el parte legacy generado.
+    expect($item->fresh()->averiaIcca->cerrada_local_at)->not->toBeNull();
+    expect(Correctivo::query()->count())->toBe(1);
+});
+
+it('correctivo resuelto exige tiempo empleado (M1)', function (): void {
+    $user = rutaItemCierreUser(78307);
+    $item = rutaItemCierreCorrectivo(78307);
+
+    $this->actingAs($user);
+
+    Volt::test('tecnico.ruta-item-cierre', ['itemId' => $item->id])
+        ->set('notas', 'Sin tiempo indicado')
+        ->call('cerrar')
+        ->assertHasErrors(['tiempo']);
+
+    expect($item->fresh()->status)->toBe(LvRutaDiaItem::STATUS_PENDIENTE);
+    expect(Correctivo::query()->count())->toBe(0);
 });
 
 it('correctivo no_resuelto requiere causa', function (): void {
@@ -138,6 +160,7 @@ it('submit con foto persiste imagen de item', function (): void {
 
     Volt::test('tecnico.ruta-item-cierre', ['itemId' => $item->id])
         ->set('fotos', [UploadedFile::fake()->image('panel.jpg')])
+        ->set('tiempo', '15')
         ->call('cerrar')
         ->assertHasNoErrors();
 

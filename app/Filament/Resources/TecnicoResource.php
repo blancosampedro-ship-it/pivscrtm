@@ -164,14 +164,35 @@ class TecnicoResource extends Resource
                     ->badge()
                     ->color(fn ($state) => $state > 5 ? 'danger' : ($state > 0 ? 'warning' : 'gray')),
                 Tables\Columns\TextColumn::make('status')
-                    ->label('Status')
+                    ->label('Estado')
                     ->badge()
                     ->formatStateUsing(fn ($state) => $state == 1 ? 'Activo' : 'Inactivo')
                     ->color(fn ($state) => $state == 1 ? 'success' : 'gray'),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('operatividad')
+                    ->label('Operatividad')
+                    ->options([
+                        'operativos' => 'Operativos (activos 60 días)',
+                        'todos' => 'Todos',
+                        'sin_actividad' => 'Sin actividad reciente',
+                    ])
+                    ->default('operativos')
+                    ->query(function (Builder $query, array $data): Builder {
+                        $v = $data['value'] ?? 'operativos';
+                        if ($v === '') {
+                            $v = 'operativos';
+                        }
+                        $desde = now()->subDays(60)->toDateString();
+
+                        return match ($v) {
+                            'todos' => $query,
+                            'sin_actividad' => $query->whereDoesntHave('asignaciones', fn (Builder $q) => $q->where('fecha', '>=', $desde)),
+                            default => $query->whereHas('asignaciones', fn (Builder $q) => $q->where('fecha', '>=', $desde)),
+                        };
+                    }),
                 Tables\Filters\TernaryFilter::make('status')
-                    ->label('Status')
+                    ->label('Estado')
                     ->placeholder('Todos')
                     ->trueLabel('Solo activos')
                     ->falseLabel('Solo inactivos')
@@ -255,7 +276,7 @@ class TecnicoResource extends Resource
                         ->extraAttributes(['data-mono' => true])
                         ->placeholder('—'),
                     Infolists\Components\TextEntry::make('status')
-                        ->label('Status')
+                        ->label('Estado')
                         ->badge()
                         ->formatStateUsing(fn ($state) => $state == 1 ? 'Activo' : 'Inactivo')
                         ->color(fn ($state) => $state == 1 ? 'success' : 'gray'),

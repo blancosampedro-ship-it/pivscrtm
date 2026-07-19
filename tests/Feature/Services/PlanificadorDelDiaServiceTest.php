@@ -259,3 +259,24 @@ it('distribucion incluye SIN_RUTA aunque sea 0', function (): void {
     expect(array_keys($result['distribucion']))->toContain(PlanificadorDelDiaService::SIN_RUTA_CODIGO);
     expect($result['distribucion'][PlanificadorDelDiaService::SIN_RUTA_CODIGO])->toBe(0);
 });
+
+it('excluye del planificador las ICCA activas con cierre local (reparadas en campo)', function (): void {
+    $pivAlcala = Piv::factory()->create(['municipio' => (string) $this->munAlcala->modulo_id]);
+    LvAveriaIcca::factory()->activa()->create(['piv_id' => $pivAlcala->piv_id, 'sgip_id' => '0040001']);
+    LvAveriaIcca::factory()->activa()->create([
+        'piv_id' => $pivAlcala->piv_id,
+        'sgip_id' => '0040002',
+        'cerrada_local_at' => now(),
+    ]);
+
+    $result = $this->svc->computar(CarbonImmutable::now('Europe/Madrid'));
+
+    $sgipIds = collect($result['grupos'])
+        ->flatMap(fn (array $grupo): array => $grupo['items'])
+        ->pluck('sgip_id')
+        ->filter()
+        ->values();
+
+    expect($sgipIds)->toContain('0040001');
+    expect($sgipIds)->not->toContain('0040002');
+});

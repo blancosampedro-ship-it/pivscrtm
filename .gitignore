@@ -13,9 +13,8 @@
 !/storage/framework/views/.gitignore
 /storage/logs/*.log
 .env
-.env.backup
-.env.production
-.env.local
+.env.*
+!.env.example
 .phpunit.result.cache
 Homestead.json
 Homestead.yaml
@@ -46,3 +45,16 @@ Thumbs.db
 # por placeholders en runbooks/prompts. Nunca commitear.
 /docs/runbooks/.smoke-credentials.local.md
 *.local.md
+
+# Dumps y backups de BD: NUNCA en git (incidente RGPD del dump público, ver
+# docs/security.md). Cinturón y tirantes.
+*.sql
+*.sql.gz
+*.bak
+*dump*.gz
+
+# Duplicados que genera iCloud/Finder ("fichero 2.php"): basura, jamás commitear.
+# Declaran las mismas clases y romperían el autodiscovery de Filament.
+* 2.php
+* 2.css
+* 2/
