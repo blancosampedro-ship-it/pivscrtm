@@ -9,11 +9,18 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 final class LvAveriaIcca extends Model
 {
     /** @use HasFactory<LvAveriaIccaFactory> */
     use HasFactory;
+
+    use LogsActivity;
+
+    /** Auditoría (M2): solo estos eventos — evita ruido de operaciones masivas. */
+    protected static $recordEvents = ['deleted'];
 
     protected $table = 'lv_averia_icca';
 
@@ -100,5 +107,15 @@ final class LvAveriaIcca extends Model
     public function tieneCierreLocal(): bool
     {
         return $this->cerrada_local_at !== null;
+    }
+
+    /** Auditoría (M2): registra quién cambió qué. */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('averia_icca')
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
     }
 }

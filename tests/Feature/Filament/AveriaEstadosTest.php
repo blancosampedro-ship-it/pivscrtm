@@ -95,7 +95,7 @@ it('ver el listado no modifica el status de las averías (capa de presentación)
 
 it('el conteo de migraciones coincide con el esperado', function (): void {
     // Guard contra migraciones accidentales: actualizar SOLO cuando una PR añada
-    // una migración a propósito. 15 de base + 1 de M1 (cierre local en ICCA).
+    // una migración a propósito. 15 base + 1 M1 (cierre local ICCA) + 1 M2 (lv_activity_log).
     $migraciones = glob(database_path('migrations/*.php'));
-    expect(count($migraciones))->toBe(16);
+    expect(count($migraciones))->toBe(17);
 });
