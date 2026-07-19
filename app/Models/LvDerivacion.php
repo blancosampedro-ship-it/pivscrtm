@@ -9,11 +9,15 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 final class LvDerivacion extends Model
 {
     /** @use HasFactory<LvDerivacionFactory> */
     use HasFactory;
+
+    use LogsActivity;
 
     protected $table = 'lv_derivacion';
 
@@ -159,5 +163,15 @@ final class LvDerivacion extends Model
     public function requiereCausaOtrosTexto(): bool
     {
         return $this->tipo_causa === self::CAUSA_OTROS;
+    }
+
+    /** Auditoría (M2): registra quién cambió qué. */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('derivacion')
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
     }
 }

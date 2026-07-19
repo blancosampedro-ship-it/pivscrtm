@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * Asignación técnico↔avería. 66.404 filas en prod.
@@ -22,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Asignacion extends Model
 {
     use HasFactory;
+    use LogsActivity;
 
     public const TIPO_CORRECTIVO = 1;
 
@@ -75,5 +78,15 @@ class Asignacion extends Model
     public function getPivAttribute(): ?Piv
     {
         return $this->averia?->piv;
+    }
+
+    /** Auditoría (M2): registra quién cambió qué. */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('asignacion')
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
     }
 }

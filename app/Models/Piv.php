@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * Panel PIV físico instalado en marquesina. 575 filas en prod.
@@ -24,6 +26,7 @@ use Illuminate\Support\Facades\Storage;
 class Piv extends Model
 {
     use HasFactory;
+    use LogsActivity;
 
     protected $table = 'piv';
 
@@ -232,5 +235,15 @@ class Piv extends Model
     public function scopeOnlyArchived(Builder $query): Builder
     {
         return $query->whereHas('archive');
+    }
+
+    /** Auditoría (M2): registra quién cambió qué. */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('piv')
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
     }
 }

@@ -11,11 +11,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 final class LvRutaDia extends Model
 {
     /** @use HasFactory<LvRutaDiaFactory> */
     use HasFactory;
+
+    use LogsActivity;
 
     protected $table = 'lv_ruta_dia';
 
@@ -81,5 +85,15 @@ final class LvRutaDia extends Model
     public function scopeDelDia(Builder $query, DateTimeInterface $fecha): void
     {
         $query->whereDate('fecha', $fecha->format('Y-m-d'));
+    }
+
+    /** Auditoría (M2): registra quién cambió qué. */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('ruta_dia')
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
     }
 }
