@@ -173,7 +173,7 @@ class AsignacionResource extends Resource
                     ->default('—')
                     ->color('gray'),
                 Tables\Columns\TextColumn::make('status')
-                    ->label('Status')
+                    ->label('Estado')
                     ->badge()
                     ->extraAttributes(['data-mono' => true]),
             ])
@@ -308,7 +308,7 @@ class AsignacionResource extends Resource
                 ]),
 
             Infolists\Components\Section::make('Cierre')
-                ->description('Form de cierre llegará en Bloque 09 — aquí solo readonly de lo existente')
+                ->description('Datos del cierre registrado (solo lectura)')
                 ->schema([
                     Infolists\Components\TextEntry::make('correctivo_estado')
                         ->label('Estado final correctivo')

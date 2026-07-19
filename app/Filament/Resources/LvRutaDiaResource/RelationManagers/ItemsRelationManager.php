@@ -75,7 +75,7 @@ final class ItemsRelationManager extends RelationManager
                     ->state(fn (LvRutaDiaItem $record): string => self::kmDesdeCiempozuelos($record) !== null ? self::kmDesdeCiempozuelos($record).' km' : '—')
                     ->extraAttributes(['data-mono' => true]),
                 Tables\Columns\TextColumn::make('status')
-                    ->label('Status')
+                    ->label('Estado')
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => self::statusLabel($state))
                     ->color(fn (string $state): string => self::statusColor($state)),

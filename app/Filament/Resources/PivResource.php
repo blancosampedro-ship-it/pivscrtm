@@ -126,8 +126,8 @@ class PivResource extends Resource
                 ->columns(3)
                 ->schema([
                     // TODO: refinar a Select cuando se descubra el diccionario de status.
-                    Forms\Components\TextInput::make('status')->label('Status')->numeric()->default(1),
-                    Forms\Components\TextInput::make('status2')->label('Status2')->numeric()->nullable(),
+                    Forms\Components\TextInput::make('status')->label('Estado')->numeric()->default(1),
+                    Forms\Components\TextInput::make('status2')->label('Estado 2')->numeric()->nullable(),
                     Forms\Components\DatePicker::make('fecha_instalacion')->label('Fecha instalación'),
                     Forms\Components\TextInput::make('mantenimiento')->label('Mantenimiento')->maxLength(45),
                     Forms\Components\Textarea::make('prevision')->label('Previsión')->rows(2)->columnSpanFull(),
@@ -184,7 +184,7 @@ class PivResource extends Resource
                     ->extraAttributes(['data-mono' => true])
                     ->color('gray'),
                 Tables\Columns\TextColumn::make('status')
-                    ->label('Status')
+                    ->label('Estado')
                     ->badge()
                     ->formatStateUsing(fn ($state) => $state == 1 ? 'Operativo' : 'Inactivo')
                     ->color(fn ($state) => $state == 1 ? 'success' : 'danger'),
@@ -192,7 +192,7 @@ class PivResource extends Resource
             ->defaultSort('piv_id')
             ->groups([
                 Tables\Grouping\Group::make('status')
-                    ->label('Status')
+                    ->label('Estado')
                     ->getTitleFromRecordUsing(fn ($record) => $record->status == 1 ? 'Operativos' : 'Inactivos / Averiados'),
             ])
             ->defaultGroup('status')
@@ -367,7 +367,7 @@ class PivResource extends Resource
                         ->formatStateUsing(fn ($state) => mb_strtoupper(trim((string) $state)))
                         ->extraAttributes(['data-mono' => true]),
                     TextEntry::make('status')
-                        ->label('Status')
+                        ->label('Estado')
                         ->badge()
                         ->formatStateUsing(fn ($state) => $state == 1 ? 'Operativo' : 'Inactivo')
                         ->color(fn ($state) => $state == 1 ? 'success' : 'danger'),

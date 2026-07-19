@@ -110,7 +110,7 @@ final class LvDerivacionResource extends Resource
                     ->limit(30)
                     ->placeholder('—'),
                 Tables\Columns\TextColumn::make('status')
-                    ->label('Status')
+                    ->label('Estado')
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => self::statusLabel($state))
                     ->color(fn (string $state): string => self::statusColor($state)),
@@ -120,7 +120,7 @@ final class LvDerivacionResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
-                    ->label('Status')
+                    ->label('Estado')
                     ->options(self::statusOptions())
                     ->default('abiertas')
                     ->query(fn (Builder $query, array $data): Builder => match ($data['value'] ?? null) {

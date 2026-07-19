@@ -104,7 +104,7 @@ final class LvRevisionPendienteResource extends Resource
                     ->label('Ruta')
                     ->getStateUsing(fn (LvRevisionPendiente $record): string => self::rutaNombre($record)),
                 Tables\Columns\TextColumn::make('status')
-                    ->label('Status')
+                    ->label('Estado')
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => self::statusLabel($state))
                     ->color(fn (string $state): string => match ($state) {

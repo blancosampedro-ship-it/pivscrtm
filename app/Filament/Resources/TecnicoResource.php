@@ -164,7 +164,7 @@ class TecnicoResource extends Resource
                     ->badge()
                     ->color(fn ($state) => $state > 5 ? 'danger' : ($state > 0 ? 'warning' : 'gray')),
                 Tables\Columns\TextColumn::make('status')
-                    ->label('Status')
+                    ->label('Estado')
                     ->badge()
                     ->formatStateUsing(fn ($state) => $state == 1 ? 'Activo' : 'Inactivo')
                     ->color(fn ($state) => $state == 1 ? 'success' : 'gray'),
@@ -192,7 +192,7 @@ class TecnicoResource extends Resource
                         };
                     }),
                 Tables\Filters\TernaryFilter::make('status')
-                    ->label('Status')
+                    ->label('Estado')
                     ->placeholder('Todos')
                     ->trueLabel('Solo activos')
                     ->falseLabel('Solo inactivos')
@@ -276,7 +276,7 @@ class TecnicoResource extends Resource
                         ->extraAttributes(['data-mono' => true])
                         ->placeholder('—'),
                     Infolists\Components\TextEntry::make('status')
-                        ->label('Status')
+                        ->label('Estado')
                         ->badge()
                         ->formatStateUsing(fn ($state) => $state == 1 ? 'Activo' : 'Inactivo')
                         ->color(fn ($state) => $state == 1 ? 'success' : 'gray'),
