@@ -110,6 +110,17 @@ final class AveriaIccaImportService
                     LvAveriaIcca::create(array_merge(['sgip_id' => $row['sgip_id']], $payload));
                     $created++;
                 } else {
+                    // M1 — cierre local vs SGIP:
+                    // · Si estaba ACTIVA y sigue en el CSV → retraso de SGIP en
+                    //   reflejar la reparación: se CONSERVA cerrada_local_at
+                    //   (no vuelve a rutas, badge "Reparada").
+                    // · Si estaba INACTIVA y reaparece → reapertura real de la
+                    //   incidencia: se LIMPIA la marca y vuelve a ser pendiente.
+                    if (! $existing->activa) {
+                        $payload['cerrada_local_at'] = null;
+                        $payload['cerrada_por_item_id'] = null;
+                    }
+
                     $existing->update($payload);
                     $updated++;
                 }

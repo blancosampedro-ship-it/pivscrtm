@@ -86,6 +86,9 @@ final class PlanificadorDelDiaService
 
         $averias = LvAveriaIcca::query()
             ->activas()
+            // M1: las reparadas en campo (cierre local) no vuelven a rutas,
+            // aunque SGIP aún las liste como activas.
+            ->sinCierreLocal()
             ->with('piv:piv_id,parada_cod,municipio')
             ->get();
 

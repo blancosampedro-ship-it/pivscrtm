@@ -10,6 +10,7 @@ use App\Models\LvRutaDia;
 use App\Models\LvRutaDiaItem;
 use App\Models\LvRutaDiaItemImagen;
 use App\Models\Tecnico;
+use App\Support\CierreCatalogo;
 use Carbon\CarbonImmutable;
 use DomainException;
 use Illuminate\Support\Facades\DB;
@@ -76,6 +77,11 @@ final class RutaDiaItemCierreService
                 $this->cerrarRevisionLegacy($item, $data, $tecnico);
             }
 
+            if ($newStatus === LvRutaDiaItem::STATUS_CERRADO
+                && $item->tipo_item === LvRutaDiaItem::TIPO_CORRECTIVO) {
+                $this->cerrarCorrectivoLegacy($item, $data, $tecnico);
+            }
+
             $this->actualizarStatusRuta($ruta);
 
             return [
@@ -140,6 +146,70 @@ final class RutaDiaItemCierreService
                 throw $exception;
             }
         }
+    }
+
+    /**
+     * M1 — Puente a legacy del correctivo ICCA resuelto (espejo del preventivo):
+     * marca la ICCA como reparada localmente y genera el parte de trabajo
+     * (averia resuelta + asignacion tipo 1 cerrada + correctivo con tiempo,
+     * recambios y diagnóstico + fotos en lv_correctivo_imagen).
+     *
+     * `activa` NO se toca: sigue siendo verdad-SGIP (el import decide).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function cerrarCorrectivoLegacy(LvRutaDiaItem $item, array $data, Tecnico $tecnico): void
+    {
+        $icca = $item->averiaIcca;
+        if ($icca === null) {
+            return;
+        }
+
+        $ahora = CarbonImmutable::now('Europe/Madrid');
+
+        $icca->update([
+            'cerrada_local_at' => $ahora,
+            'cerrada_por_item_id' => $item->id,
+        ]);
+
+        // Sin panel resuelto (ICCA "ambigua") no se puede anclar el parte a un
+        // piv legacy: queda la marca de reparada y el detalle en el propio item.
+        if ($icca->piv_id === null) {
+            return;
+        }
+
+        $notasTecnico = trim((string) ($data['notas_tecnico'] ?? ''));
+
+        $averia = Averia::create([
+            'piv_id' => $icca->piv_id,
+            'tecnico_id' => $tecnico->tecnico_id,
+            'notas' => 'Correctivo SGIP #'.$icca->sgip_id.' — '.$icca->categoria,
+            'fecha' => $ahora,
+            'status' => 2, // nace resuelta: el parte se registra en el cierre
+        ]);
+
+        $asignacion = Asignacion::create([
+            'averia_id' => $averia->averia_id,
+            'tecnico_id' => $tecnico->tecnico_id,
+            'tipo' => Asignacion::TIPO_CORRECTIVO,
+            'fecha' => $ahora->format('Y-m-d'),
+            'status' => 1, // AsignacionCierreService la cierra (status=2)
+        ]);
+
+        $diagnostico = 'SGIP #'.$icca->sgip_id.' · '.$icca->categoria
+            .(filled($icca->descripcion) ? ' · '.$icca->descripcion : '');
+
+        $recambios = collect($data['recambios'] ?? [])
+            ->filter(fn ($r): bool => in_array($r, CierreCatalogo::RECAMBIOS_DISPONIBLES, true))
+            ->implode(', ');
+
+        $this->asignacionCierre->cerrar($asignacion, [
+            'tiempo' => CierreCatalogo::tiempoToHoras((string) ($data['tiempo'] ?? '')) ?: null,
+            'recambios' => $recambios !== '' ? $recambios : 'Sin recambios',
+            'diagnostico' => $notasTecnico !== '' ? $diagnostico.' — '.$notasTecnico : $diagnostico,
+            'estado_final' => 'OK',
+            'fotos' => $data['fotos'] ?? [],
+        ]);
     }
 
     private function actualizarStatusRuta(LvRutaDia $ruta): void

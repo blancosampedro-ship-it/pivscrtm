@@ -159,3 +159,42 @@ it('import is idempotent for the same snapshot', function (): void {
     expect($result['updated'])->toBe(1);
     expect(LvAveriaIcca::where('sgip_id', '0028078')->count())->toBe(1);
 });
+
+it('import conserva la marca reparada si la ICCA activa sigue en el CSV (retraso SGIP)', function (): void {
+    $admin = User::factory()->admin()->create();
+    LvAveriaIcca::factory()->create([
+        'sgip_id' => '0030001',
+        'activa' => true,
+        'cerrada_local_at' => now()->subDay(),
+        'cerrada_por_item_id' => 42,
+    ]);
+
+    app(AveriaIccaImportService::class)->import(sgipCsv([
+        ['0030001', LvAveriaIcca::CAT_COMUNICACION, 'PANEL 07022', 'asignada', 'Sigue en SGIP', 'Nota', 'SGIP_winfin'],
+    ], 'sgip_lag.csv'), $admin);
+
+    $icca = LvAveriaIcca::where('sgip_id', '0030001')->first();
+    expect($icca->activa)->toBeTrue();
+    expect($icca->cerrada_local_at)->not->toBeNull();
+    expect($icca->cerrada_por_item_id)->toBe(42);
+});
+
+it('import limpia la marca reparada cuando una ICCA inactiva reaparece (reapertura real)', function (): void {
+    $admin = User::factory()->admin()->create();
+    LvAveriaIcca::factory()->create([
+        'sgip_id' => '0030002',
+        'activa' => false,
+        'marked_inactive_at' => now()->subWeek(),
+        'cerrada_local_at' => now()->subWeek(),
+        'cerrada_por_item_id' => 43,
+    ]);
+
+    app(AveriaIccaImportService::class)->import(sgipCsv([
+        ['0030002', LvAveriaIcca::CAT_APAGADO, 'PANEL 07022', 'asignada', 'Reabierta', 'Nota', 'SGIP_winfin'],
+    ], 'sgip_reopen.csv'), $admin);
+
+    $icca = LvAveriaIcca::where('sgip_id', '0030002')->first();
+    expect($icca->activa)->toBeTrue();
+    expect($icca->cerrada_local_at)->toBeNull();
+    expect($icca->cerrada_por_item_id)->toBeNull();
+});
