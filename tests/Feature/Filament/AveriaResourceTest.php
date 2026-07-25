@@ -10,6 +10,7 @@ use App\Models\Operador;
 use App\Models\Piv;
 use App\Models\Tecnico;
 use App\Models\User;
+use Filament\Tables\Actions\ActionGroup;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
@@ -97,7 +98,7 @@ it('averia_row_click_abre_ver_y_acciones_en_kebab', function () {
 
     // Las acciones van en un kebab (ActionGroup), mismo patrón que PivResource.
     $grupos = collect($table->getActions())
-        ->filter(fn ($accion) => $accion instanceof \Filament\Tables\Actions\ActionGroup);
+        ->filter(fn ($accion) => $accion instanceof ActionGroup);
     expect($grupos->isNotEmpty())->toBeTrue();
 });
 
