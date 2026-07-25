@@ -10,6 +10,7 @@ use App\Models\Operador;
 use App\Models\Piv;
 use App\Models\Tecnico;
 use App\Models\User;
+use Filament\Tables\Actions\ActionGroup;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
@@ -85,4 +86,36 @@ it('averia list expone las acciones Ver y Editar por fila', function () {
     Livewire::test(ListAverias::class)
         ->assertTableActionExists('view')
         ->assertTableActionExists('edit');
+});
+
+it('averia_row_click_abre_ver_y_acciones_en_kebab', function () {
+    Piv::factory()->create(['piv_id' => 96901]);
+    $averia = Averia::factory()->create(['averia_id' => 96901, 'piv_id' => 96901, 'status' => 1]);
+
+    // La fila entera es clicable y abre la acción 'view' (slide-over).
+    $table = Livewire::test(ListAverias::class)->instance()->getTable();
+    expect($table->getRecordAction($averia))->toBe('view');
+
+    // Las acciones van en un kebab (ActionGroup), mismo patrón que PivResource.
+    $grupos = collect($table->getActions())
+        ->filter(fn ($accion) => $accion instanceof ActionGroup);
+    expect($grupos->isNotEmpty())->toBeTrue();
+});
+
+it('averia_edit_navegable_desde_el_kebab_y_notas_oculta_por_defecto', function () {
+    Piv::factory()->create(['piv_id' => 96903]);
+    $averia = Averia::factory()->create(['averia_id' => 96903, 'piv_id' => 96903, 'status' => 1]);
+
+    Livewire::test(ListAverias::class)
+        ->assertTableActionHasUrl('edit', AveriaResource::getUrl('edit', ['record' => $averia]), $averia->averia_id)
+        ->assertCanNotRenderTableColumn('notas');
+});
+
+it('averia_view_action_montable_desde_el_kebab', function () {
+    Piv::factory()->create(['piv_id' => 96902]);
+    $averia = Averia::factory()->create(['averia_id' => 96902, 'piv_id' => 96902, 'status' => 1]);
+
+    Livewire::test(ListAverias::class)
+        ->mountTableAction('view', $averia->averia_id)
+        ->assertSuccessful();
 });

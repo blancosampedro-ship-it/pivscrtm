@@ -2,7 +2,7 @@
  * Pivot 2026-05-02 (DESIGN.md §10.1 IBM Carbon).
  * Tokens semánticos vía CSS custom properties. Profundidad por capas de color,
  * 0px border-radius en buttons/inputs/cards, inputs bottom-border-only,
- * sticky actions column, type scale Carbon Productive.
+ * tablas densidad productive (36-40px), type scale Carbon Productive.
  * Wordmark "Winfin PIV" conserva Instrument Serif italic en .brand em (excepción única). */
 
 @import "../../../../vendor/filament/filament/resources/css/theme.css";
@@ -99,8 +99,31 @@ body.fi-body {
     letter-spacing: 0.16px;
 }
 
+/* Suelo de 40px por fila: con el padding compacto de abajo, las celdas de
+   solo texto quedarían en ~34px; este mínimo las sube al rango 36-40px. */
 .fi-ta-row {
     height: 40px;
+}
+
+/* Densidad productive real (DESIGN.md: filas 36-40px). Filament pone
+   px-3 py-4 (12/16px) en el wrapper interno de cada celda; Carbon productive
+   usa 8px vertical y 8px horizontal (16px efectivos entre columnas). */
+.fi-ta-table .fi-ta-text,
+.fi-ta-table .fi-ta-icon,
+.fi-ta-table .fi-ta-image {
+    padding: 8px;
+}
+
+/* Celda de checkbox (bulk actions): el padding vive en un div sin clase
+   dentro de .fi-ta-selection-cell (px-3 py-4 en el blade de Filament). */
+.fi-ta-table .fi-ta-selection-cell > div {
+    padding: 8px;
+}
+
+/* Iconos de acción (32px) + 4px arriba/abajo = fila de 40px */
+.fi-ta-table .fi-ta-actions-cell > div {
+    padding-block: 4px;
+    padding-inline: 8px;
 }
 
 .fi-ta-header-cell {
@@ -109,6 +132,19 @@ body.fi-body {
     letter-spacing: 0.32px;
     text-transform: none;       /* Carbon: header sin uppercase */
     color: var(--winfin-text-secondary);
+    padding-block: 8px;
+    padding-inline: 8px;
+}
+
+/* Alineación con el contenido en la primera/última columna: el <th> de
+   Filament trae sm:first-of-type:ps-6 / sm:last-of-type:pe-6 (24px), pero el
+   cuerpo queda en 12px (td) + 8px (wrapper) = 20px. Igualamos el header. */
+.fi-ta-header-cell:first-of-type {
+    padding-inline-start: 20px;
+}
+
+.fi-ta-header-cell:last-of-type {
+    padding-inline-end: 20px;
 }
 
 .fi-ta-group-header {
@@ -127,61 +163,10 @@ body.fi-body {
     font-variant-numeric: tabular-nums;
 }
 
-/* ---- Columna Acciones — sticky con borde suave (Carbon DataTable) ----
-   Ancho shrink-to-fit (cada tabla usa justo lo que necesitan sus botones),
-   fondo calcado al de la fila (rayado/hover), y degradado sutil en el borde
-   para que el solape al hacer scroll se lea como "columna fija", no como corte. */
-.fi-ta-table .fi-ta-actions-header-cell,
-.fi-ta-table .fi-ta-actions-cell {
-    position: sticky;
-    right: 0;
-    z-index: 2;
-    width: 1px;              /* shrink-to-fit del contenido */
-    min-width: 5.5rem;
-    white-space: nowrap;
-    background-color: var(--winfin-bg-base);
-    border-left: 1px solid var(--winfin-border-subtle);  /* separador hairline */
-    text-align: center;
-}
-
-/* Borde-degradado Carbon: señala que hay contenido pasando por debajo */
-.fi-ta-table .fi-ta-actions-header-cell::before,
-.fi-ta-table .fi-ta-actions-cell::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: -10px;
-    width: 10px;
-    background: linear-gradient(to left, rgb(22 22 22 / 0.06), transparent);
-    pointer-events: none;
-}
-
-/* La celda copia el fondo REAL de su fila:
-   - rayado: Filament pone `bg-gray-50` en los <tr> pares (striped)
-   - hover: solo en filas clicables (clase hover:bg-gray-50 en el <tr>) */
-.fi-ta-table .fi-ta-row.bg-gray-50 .fi-ta-actions-cell {
-    background-color: rgb(249 250 251);  /* = tailwind gray-50, idéntico a la fila */
-}
-
-.fi-ta-table .fi-ta-row[class*="hover:bg-gray-50"]:hover .fi-ta-actions-cell {
-    background-color: rgb(249 250 251);
-}
-
-/* Acciones centradas horizontal y verticalmente */
-.fi-ta-table .fi-ta-actions-cell .fi-ta-actions {
-    justify-content: center;
-    align-items: center;
-}
-
-/* Header etiquetado "Acciones" (Filament no lo etiqueta por defecto) */
-.fi-ta-table .fi-ta-actions-header-cell::after {
-    content: "Acciones";
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.32px;
-    color: var(--winfin-text-secondary);
-}
+/* Columna Acciones: sin sticky ni etiqueta (patrón Carbon: overflow menu
+   discreto al final de la fila; la fila clicable abre el detalle). La tabla
+   debe caber sin overflow horizontal — si una tabla ancha desborda, las
+   acciones hacen scroll con ella, no se fijan tapando contenido. */
 
 /* ---- Inputs — bottom-border-only (firma Carbon) ---- */
 .fi-input,
@@ -272,15 +257,4 @@ body.fi-body {
         --winfin-accent-soft:   #001141;
     }
 
-    /* Columna Acciones en dark: degradado y fondos de fila equivalentes
-       (striped dark = white/5 sobre Gray 100 ≈ #1F1F1F). */
-    .fi-ta-table .fi-ta-actions-header-cell::before,
-    .fi-ta-table .fi-ta-actions-cell::before {
-        background: linear-gradient(to left, rgb(0 0 0 / 0.45), transparent);
-    }
-
-    .fi-ta-table .fi-ta-row.bg-gray-50 .fi-ta-actions-cell,
-    .fi-ta-table .fi-ta-row[class*="hover:bg-gray-50"]:hover .fi-ta-actions-cell {
-        background-color: #1F1F1F;
-    }
 }

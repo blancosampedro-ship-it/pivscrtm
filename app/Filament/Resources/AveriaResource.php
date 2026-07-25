@@ -131,14 +131,18 @@ class AveriaResource extends Resource
                 Tables\Columns\TextColumn::make('piv.municipioModulo.nombre')
                     ->label('Municipio')
                     ->default('—')
+                    ->limit(18)
+                    ->tooltip(self::tooltipSiTruncado(18))
                     ->color('gray'),
                 Tables\Columns\TextColumn::make('operador.razon_social')
                     ->label('Operador')
-                    ->limit(20)
+                    ->limit(16)
+                    ->tooltip(self::tooltipSiTruncado(16))
                     ->color('gray'),
                 Tables\Columns\TextColumn::make('tecnico.nombre_completo')
                     ->label('Técnico')
-                    ->limit(20)
+                    ->limit(16)
+                    ->tooltip(self::tooltipSiTruncado(16))
                     ->placeholder('—')
                     ->color('gray'),
                 Tables\Columns\TextColumn::make('asignacion.tipo')
@@ -163,7 +167,7 @@ class AveriaResource extends Resource
                     ->label('Notas')
                     ->limit(60)
                     ->wrap()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('fecha', 'desc')
             ->filters([
@@ -226,17 +230,24 @@ class AveriaResource extends Resource
                             ->when($data['hasta'] ?? null, fn ($q, $d) => $q->whereDate('fecha', '<=', $d));
                     }),
             ])
+            ->recordAction('view')
             ->actions([
-                Tables\Actions\ViewAction::make()
-                    ->iconButton()
-                    ->tooltip('Ver detalle')
-                    ->slideOver()
-                    ->modalWidth('2xl')
-                    ->infolist(fn (Infolist $infolist) => self::infolist($infolist)),
-                Tables\Actions\EditAction::make()
-                    ->iconButton()
-                    ->tooltip('Editar avería'),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make()
+                        ->slideOver()
+                        ->modalWidth('2xl')
+                        ->infolist(fn (Infolist $infolist) => self::infolist($infolist)),
+                    Tables\Actions\EditAction::make(),
+                ]),
             ]);
+    }
+
+    /** Tooltip solo cuando el valor supera el límite visible de la columna. */
+    protected static function tooltipSiTruncado(int $limite): \Closure
+    {
+        return fn (Tables\Columns\TextColumn $column): ?string => mb_strlen((string) $column->getState()) > $limite
+            ? (string) $column->getState()
+            : null;
     }
 
     public static function infolist(Infolist $infolist): Infolist
